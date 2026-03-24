@@ -1,0 +1,501 @@
+CREATE DATABASE IF NOT EXISTS dynamic_platform
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE dynamic_platform;
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+CREATE TABLE dp_module (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    module_code VARCHAR(100) NOT NULL,
+    module_name VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+    version_no INT NOT NULL DEFAULT 1,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_system BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_dp_module_code (module_code)
+) ENGINE=InnoDB;
+CREATE TABLE dp_entity (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    module_id BIGINT NOT NULL,
+    entity_code VARCHAR(100) NOT NULL,
+    entity_name VARCHAR(255) NOT NULL,
+    table_strategy VARCHAR(30) NOT NULL DEFAULT 'GENERIC',
+    description TEXT NULL,
+    is_root BOOLEAN NOT NULL DEFAULT TRUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    version_no INT NOT NULL DEFAULT 1,
+    display_name_pattern VARCHAR(500) NULL,
+    default_sort_json JSON NULL,
+    config_json JSON NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_dp_entity_module
+        FOREIGN KEY (module_id) REFERENCES dp_module(id),
+    UNIQUE KEY uk_dp_entity_module_code (module_id, entity_code),
+    KEY idx_dp_entity_module (module_id)
+) ENGINE=InnoDB;
+CREATE TABLE dp_field_group (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    entity_id BIGINT NOT NULL,
+    group_code VARCHAR(100) NOT NULL,
+    group_name VARCHAR(255) NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    config_json JSON NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_dp_field_group_entity
+        FOREIGN KEY (entity_id) REFERENCES dp_entity(id),
+    UNIQUE KEY uk_dp_field_group_entity_code (entity_id, group_code),
+    KEY idx_dp_field_group_entity (entity_id)
+) ENGINE=InnoDB;
+CREATE TABLE dp_field (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    entity_id BIGINT NOT NULL,
+    field_group_id BIGINT NULL,
+    field_code VARCHAR(100) NOT NULL,
+    field_name VARCHAR(255) NOT NULL,
+    data_type VARCHAR(50) NOT NULL,
+    ui_type VARCHAR(50) NULL,
+    storage_type VARCHAR(30) NOT NULL DEFAULT 'SCALAR',
+    is_required BOOLEAN NOT NULL DEFAULT FALSE,
+    is_unique_field BOOLEAN NOT NULL DEFAULT FALSE,
+    is_searchable BOOLEAN NOT NULL DEFAULT FALSE,
+    is_filterable BOOLEAN NOT NULL DEFAULT FALSE,
+    is_sortable BOOLEAN NOT NULL DEFAULT FALSE,
+    is_listable BOOLEAN NOT NULL DEFAULT TRUE,
+    is_detail_visible BOOLEAN NOT NULL DEFAULT TRUE,
+    is_editable BOOLEAN NOT NULL DEFAULT TRUE,
+    is_system BOOLEAN NOT NULL DEFAULT FALSE,
+    default_value_json JSON NULL,
+    validation_json JSON NULL,
+    config_json JSON NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    relation_entity_id BIGINT NULL,
+    relation_type VARCHAR(30) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_dp_field_entity
+        FOREIGN KEY (entity_id) REFERENCES dp_entity(id),
+    CONSTRAINT fk_dp_field_group
+        FOREIGN KEY (field_group_id) REFERENCES dp_field_group(id),
+    CONSTRAINT fk_dp_field_relation_entity
+        FOREIGN KEY (relation_entity_id) REFERENCES dp_entity(id),
+
+    UNIQUE KEY uk_dp_field_entity_code (entity_id, field_code),
+    KEY idx_dp_field_entity (entity_id),
+    KEY idx_dp_field_group (field_group_id),
+    KEY idx_dp_field_relation_entity (relation_entity_id)
+) ENGINE=InnoDB;
+CREATE TABLE dp_field_option (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    field_id BIGINT NOT NULL,
+    option_code VARCHAR(100) NOT NULL,
+    option_label VARCHAR(255) NOT NULL,
+    option_value VARCHAR(255) NOT NULL,
+    color_code VARCHAR(30) NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    config_json JSON NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_dp_field_option_field
+        FOREIGN KEY (field_id) REFERENCES dp_field(id),
+
+    UNIQUE KEY uk_dp_field_option_code (field_id, option_code),
+    KEY idx_dp_field_option_field (field_id)
+) ENGINE=InnoDB;
+CREATE TABLE dp_entity_relation (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    source_entity_id BIGINT NOT NULL,
+    relation_code VARCHAR(100) NOT NULL,
+    relation_name VARCHAR(255) NOT NULL,
+    target_entity_id BIGINT NOT NULL,
+    relation_kind VARCHAR(30) NOT NULL,
+    mapped_by_field_id BIGINT NULL,
+    config_json JSON NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_dp_entity_relation_source
+        FOREIGN KEY (source_entity_id) REFERENCES dp_entity(id),
+    CONSTRAINT fk_dp_entity_relation_target
+        FOREIGN KEY (target_entity_id) REFERENCES dp_entity(id),
+    CONSTRAINT fk_dp_entity_relation_mapped_by_field
+        FOREIGN KEY (mapped_by_field_id) REFERENCES dp_field(id),
+
+    UNIQUE KEY uk_dp_entity_relation_code (source_entity_id, relation_code),
+    KEY idx_dp_entity_relation_source (source_entity_id),
+    KEY idx_dp_entity_relation_target (target_entity_id)
+) ENGINE=InnoDB;
+CREATE TABLE dp_entity_constraint (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    entity_id BIGINT NOT NULL,
+    constraint_code VARCHAR(100) NOT NULL,
+    constraint_name VARCHAR(255) NOT NULL,
+    constraint_type VARCHAR(30) NOT NULL,
+    expression_json JSON NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_dp_entity_constraint_entity
+        FOREIGN KEY (entity_id) REFERENCES dp_entity(id),
+
+    UNIQUE KEY uk_dp_entity_constraint_code (entity_id, constraint_code),
+    KEY idx_dp_entity_constraint_entity (entity_id)
+) ENGINE=InnoDB;
+CREATE TABLE dp_screen (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    module_id BIGINT NOT NULL,
+    entity_id BIGINT NULL,
+    screen_code VARCHAR(100) NOT NULL,
+    screen_name VARCHAR(255) NOT NULL,
+    screen_type VARCHAR(50) NOT NULL,
+    route_path VARCHAR(255) NULL,
+    config_json JSON NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_dp_screen_module
+        FOREIGN KEY (module_id) REFERENCES dp_module(id),
+    CONSTRAINT fk_dp_screen_entity
+        FOREIGN KEY (entity_id) REFERENCES dp_entity(id),
+
+    UNIQUE KEY uk_dp_screen_module_code (module_id, screen_code),
+    KEY idx_dp_screen_module (module_id),
+    KEY idx_dp_screen_entity (entity_id)
+) ENGINE=InnoDB;
+CREATE TABLE dp_screen_section (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    screen_id BIGINT NOT NULL,
+    section_code VARCHAR(100) NOT NULL,
+    section_name VARCHAR(255) NOT NULL,
+    section_type VARCHAR(50) NOT NULL,
+    parent_section_id BIGINT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    config_json JSON NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_dp_screen_section_screen
+        FOREIGN KEY (screen_id) REFERENCES dp_screen(id),
+    CONSTRAINT fk_dp_screen_section_parent
+        FOREIGN KEY (parent_section_id) REFERENCES dp_screen_section(id),
+
+    UNIQUE KEY uk_dp_screen_section_code (screen_id, section_code),
+    KEY idx_dp_screen_section_screen (screen_id),
+    KEY idx_dp_screen_section_parent (parent_section_id)
+) ENGINE=InnoDB;
+CREATE TABLE dp_screen_field (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    screen_id BIGINT NOT NULL,
+    section_id BIGINT NULL,
+    field_id BIGINT NOT NULL,
+    display_label VARCHAR(255) NULL,
+    widget_type VARCHAR(50) NULL,
+    col_span INT NOT NULL DEFAULT 12,
+    row_no INT NOT NULL DEFAULT 0,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_readonly BOOLEAN NOT NULL DEFAULT FALSE,
+    is_hidden BOOLEAN NOT NULL DEFAULT FALSE,
+    config_json JSON NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_dp_screen_field_screen
+        FOREIGN KEY (screen_id) REFERENCES dp_screen(id),
+    CONSTRAINT fk_dp_screen_field_section
+        FOREIGN KEY (section_id) REFERENCES dp_screen_section(id),
+    CONSTRAINT fk_dp_screen_field_field
+        FOREIGN KEY (field_id) REFERENCES dp_field(id),
+
+    UNIQUE KEY uk_dp_screen_field_unique (screen_id, field_id, section_id),
+    KEY idx_dp_screen_field_screen (screen_id),
+    KEY idx_dp_screen_field_section (section_id),
+    KEY idx_dp_screen_field_field (field_id)
+) ENGINE=InnoDB;
+CREATE TABLE dp_menu (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    module_id BIGINT NOT NULL,
+    menu_code VARCHAR(100) NOT NULL,
+    menu_name VARCHAR(255) NOT NULL,
+    parent_menu_id BIGINT NULL,
+    menu_type VARCHAR(30) NOT NULL DEFAULT 'SCREEN',
+    screen_id BIGINT NULL,
+    route_path VARCHAR(255) NULL,
+    icon VARCHAR(100) NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    config_json JSON NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_dp_menu_module
+        FOREIGN KEY (module_id) REFERENCES dp_module(id),
+    CONSTRAINT fk_dp_menu_parent
+        FOREIGN KEY (parent_menu_id) REFERENCES dp_menu(id),
+    CONSTRAINT fk_dp_menu_screen
+        FOREIGN KEY (screen_id) REFERENCES dp_screen(id),
+
+    UNIQUE KEY uk_dp_menu_module_code (module_id, menu_code),
+    KEY idx_dp_menu_module (module_id),
+    KEY idx_dp_menu_parent (parent_menu_id),
+    KEY idx_dp_menu_screen (screen_id)
+) ENGINE=InnoDB;
+CREATE TABLE dp_workflow (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    entity_id BIGINT NOT NULL,
+    workflow_code VARCHAR(100) NOT NULL,
+    workflow_name VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    is_default BOOLEAN NOT NULL DEFAULT TRUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    config_json JSON NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_dp_workflow_entity
+        FOREIGN KEY (entity_id) REFERENCES dp_entity(id),
+
+    UNIQUE KEY uk_dp_workflow_entity_code (entity_id, workflow_code),
+    KEY idx_dp_workflow_entity (entity_id)
+) ENGINE=InnoDB;
+CREATE TABLE dp_workflow_state (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    workflow_id BIGINT NOT NULL,
+    state_code VARCHAR(100) NOT NULL,
+    state_name VARCHAR(255) NOT NULL,
+    state_type VARCHAR(30) NOT NULL DEFAULT 'NORMAL',
+    is_initial BOOLEAN NOT NULL DEFAULT FALSE,
+    is_final BOOLEAN NOT NULL DEFAULT FALSE,
+    color_code VARCHAR(30) NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    config_json JSON NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_dp_workflow_state_workflow
+        FOREIGN KEY (workflow_id) REFERENCES dp_workflow(id),
+
+    UNIQUE KEY uk_dp_workflow_state_code (workflow_id, state_code),
+    KEY idx_dp_workflow_state_workflow (workflow_id)
+) ENGINE=InnoDB;
+CREATE TABLE dp_workflow_transition (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    workflow_id BIGINT NOT NULL,
+    transition_code VARCHAR(100) NOT NULL,
+    transition_name VARCHAR(255) NOT NULL,
+    from_state_id BIGINT NOT NULL,
+    to_state_id BIGINT NOT NULL,
+    action_code VARCHAR(100) NULL,
+    condition_json JSON NULL,
+    effect_json JSON NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_dp_workflow_transition_workflow
+        FOREIGN KEY (workflow_id) REFERENCES dp_workflow(id),
+    CONSTRAINT fk_dp_workflow_transition_from_state
+        FOREIGN KEY (from_state_id) REFERENCES dp_workflow_state(id),
+    CONSTRAINT fk_dp_workflow_transition_to_state
+        FOREIGN KEY (to_state_id) REFERENCES dp_workflow_state(id),
+
+    UNIQUE KEY uk_dp_workflow_transition_code (workflow_id, transition_code),
+    KEY idx_dp_workflow_transition_workflow (workflow_id),
+    KEY idx_dp_workflow_transition_from_state (from_state_id),
+    KEY idx_dp_workflow_transition_to_state (to_state_id)
+) ENGINE=InnoDB;
+CREATE TABLE app_record (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    entity_id BIGINT NOT NULL,
+    record_code VARCHAR(100) NULL,
+    display_name VARCHAR(500) NULL,
+    current_state_id BIGINT NULL,
+    parent_record_id BIGINT NULL,
+    root_record_id BIGINT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+    version_no BIGINT NOT NULL DEFAULT 0,
+    data_json JSON NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_app_record_entity
+        FOREIGN KEY (entity_id) REFERENCES dp_entity(id),
+    CONSTRAINT fk_app_record_state
+        FOREIGN KEY (current_state_id) REFERENCES dp_workflow_state(id),
+    CONSTRAINT fk_app_record_parent
+        FOREIGN KEY (parent_record_id) REFERENCES app_record(id),
+    CONSTRAINT fk_app_record_root
+        FOREIGN KEY (root_record_id) REFERENCES app_record(id),
+
+    UNIQUE KEY uk_app_record_entity_code (entity_id, record_code),
+    KEY idx_app_record_entity (entity_id),
+    KEY idx_app_record_state (current_state_id),
+    KEY idx_app_record_parent (parent_record_id),
+    KEY idx_app_record_root (root_record_id),
+    KEY idx_app_record_status (status),
+    KEY idx_app_record_created_at (created_at)
+) ENGINE=InnoDB;
+CREATE TABLE app_record_value (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    record_id BIGINT NOT NULL,
+    entity_id BIGINT NOT NULL,
+    field_id BIGINT NOT NULL,
+    seq_no INT NOT NULL DEFAULT 0,
+
+    value_string VARCHAR(1000) NULL,
+    value_text LONGTEXT NULL,
+    value_integer BIGINT NULL,
+    value_decimal DECIMAL(20,6) NULL,
+    value_boolean BOOLEAN NULL,
+    value_date DATE NULL,
+    value_datetime DATETIME NULL,
+    value_json JSON NULL,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_app_record_value_record
+        FOREIGN KEY (record_id) REFERENCES app_record(id) ON DELETE CASCADE,
+    CONSTRAINT fk_app_record_value_entity
+        FOREIGN KEY (entity_id) REFERENCES dp_entity(id),
+    CONSTRAINT fk_app_record_value_field
+        FOREIGN KEY (field_id) REFERENCES dp_field(id),
+
+    UNIQUE KEY uk_app_record_value_unique (record_id, field_id, seq_no),
+    KEY idx_app_record_value_record (record_id),
+    KEY idx_app_record_value_field (field_id),
+    KEY idx_app_record_value_entity_field (entity_id, field_id),
+    KEY idx_app_record_value_string (field_id, value_string(255)),
+    KEY idx_app_record_value_integer (field_id, value_integer),
+    KEY idx_app_record_value_decimal (field_id, value_decimal),
+    KEY idx_app_record_value_date (field_id, value_date),
+    KEY idx_app_record_value_datetime (field_id, value_datetime),
+    KEY idx_app_record_value_boolean (field_id, value_boolean)
+) ENGINE=InnoDB;
+CREATE TABLE app_record_link (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    relation_id BIGINT NULL,
+    source_record_id BIGINT NOT NULL,
+    source_entity_id BIGINT NOT NULL,
+    field_id BIGINT NULL,
+    target_record_id BIGINT NOT NULL,
+    target_entity_id BIGINT NOT NULL,
+    link_type VARCHAR(30) NOT NULL DEFAULT 'REFERENCE',
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_app_record_link_relation
+        FOREIGN KEY (relation_id) REFERENCES dp_entity_relation(id),
+    CONSTRAINT fk_app_record_link_source_record
+        FOREIGN KEY (source_record_id) REFERENCES app_record(id) ON DELETE CASCADE,
+    CONSTRAINT fk_app_record_link_target_record
+        FOREIGN KEY (target_record_id) REFERENCES app_record(id) ON DELETE CASCADE,
+    CONSTRAINT fk_app_record_link_source_entity
+        FOREIGN KEY (source_entity_id) REFERENCES dp_entity(id),
+    CONSTRAINT fk_app_record_link_target_entity
+        FOREIGN KEY (target_entity_id) REFERENCES dp_entity(id),
+    CONSTRAINT fk_app_record_link_field
+        FOREIGN KEY (field_id) REFERENCES dp_field(id),
+
+    UNIQUE KEY uk_app_record_link_unique (
+        source_record_id, field_id, target_record_id, link_type
+    ),
+    KEY idx_app_record_link_source (source_record_id),
+    KEY idx_app_record_link_target (target_record_id),
+    KEY idx_app_record_link_field (field_id),
+    KEY idx_app_record_link_relation (relation_id)
+) ENGINE=InnoDB;
+CREATE TABLE app_record_state_history (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    record_id BIGINT NOT NULL,
+    workflow_id BIGINT NOT NULL,
+    from_state_id BIGINT NULL,
+    to_state_id BIGINT NOT NULL,
+    transition_id BIGINT NULL,
+    action_code VARCHAR(100) NULL,
+    note TEXT NULL,
+    changed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_app_record_state_history_record
+        FOREIGN KEY (record_id) REFERENCES app_record(id) ON DELETE CASCADE,
+    CONSTRAINT fk_app_record_state_history_workflow
+        FOREIGN KEY (workflow_id) REFERENCES dp_workflow(id),
+    CONSTRAINT fk_app_record_state_history_from_state
+        FOREIGN KEY (from_state_id) REFERENCES dp_workflow_state(id),
+    CONSTRAINT fk_app_record_state_history_to_state
+        FOREIGN KEY (to_state_id) REFERENCES dp_workflow_state(id),
+    CONSTRAINT fk_app_record_state_history_transition
+        FOREIGN KEY (transition_id) REFERENCES dp_workflow_transition(id),
+
+    KEY idx_app_record_state_history_record (record_id),
+    KEY idx_app_record_state_history_workflow (workflow_id),
+    KEY idx_app_record_state_history_changed_at (changed_at)
+) ENGINE=InnoDB;
+CREATE TABLE dp_view (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    entity_id BIGINT NOT NULL,
+    view_code VARCHAR(100) NOT NULL,
+    view_name VARCHAR(255) NOT NULL,
+    view_type VARCHAR(30) NOT NULL DEFAULT 'LIST',
+    query_json JSON NOT NULL,
+    columns_json JSON NULL,
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_dp_view_entity
+        FOREIGN KEY (entity_id) REFERENCES dp_entity(id),
+
+    UNIQUE KEY uk_dp_view_entity_code (entity_id, view_code),
+    KEY idx_dp_view_entity (entity_id)
+) ENGINE=InnoDB;
+CREATE TABLE app_blob (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    blob_code VARCHAR(100) NULL,
+    file_name VARCHAR(500) NOT NULL,
+    content_type VARCHAR(255) NULL,
+    file_size BIGINT NOT NULL,
+    storage_provider VARCHAR(50) NOT NULL DEFAULT 'LOCAL',
+    storage_key VARCHAR(1000) NOT NULL,
+    checksum VARCHAR(255) NULL,
+    metadata_json JSON NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_app_blob_code (blob_code),
+    KEY idx_app_blob_storage_key (storage_key(255))
+) ENGINE=InnoDB;
+CREATE TABLE app_record_blob (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    record_id BIGINT NOT NULL,
+    field_id BIGINT NOT NULL,
+    blob_id BIGINT NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_app_record_blob_record
+        FOREIGN KEY (record_id) REFERENCES app_record(id) ON DELETE CASCADE,
+    CONSTRAINT fk_app_record_blob_field
+        FOREIGN KEY (field_id) REFERENCES dp_field(id),
+    CONSTRAINT fk_app_record_blob_blob
+        FOREIGN KEY (blob_id) REFERENCES app_blob(id) ON DELETE CASCADE,
+
+    UNIQUE KEY uk_app_record_blob_unique (record_id, field_id, blob_id),
+    KEY idx_app_record_blob_record (record_id),
+    KEY idx_app_record_blob_field (field_id),
+    KEY idx_app_record_blob_blob (blob_id)
+) ENGINE=InnoDB;
+SET FOREIGN_KEY_CHECKS = 1;
