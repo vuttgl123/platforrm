@@ -4,9 +4,6 @@ import lombok.Builder;
 import lombok.Getter;
 import org.springframework.data.domain.Page;
 
-/**
- * Metadata phân trang đi kèm trong ApiResponse.meta.
- */
 @Getter
 @Builder
 public class PageMeta {

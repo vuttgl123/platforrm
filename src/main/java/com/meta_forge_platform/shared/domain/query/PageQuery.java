@@ -10,13 +10,6 @@ import org.springframework.data.domain.Sort;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Query object cho tất cả request list/search.
- * Controller nhận vào, truyền xuống Service → Repository.
- *
- * Ví dụ request:
- * GET /api/records?page=0&size=20&sort=createdAt,desc&filter=status:ACTIVE&filter=name:~foo
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -58,7 +51,6 @@ public class PageQuery {
         List<Sort.Order> orders = sorts.stream()
                 .map(SortQuery::toOrder)
                 .toList();
-        return PageRequest.of(
-                page, size, Sort.by(orders));
+        return PageRequest.of(page, size, Sort.by(orders));
     }
 }

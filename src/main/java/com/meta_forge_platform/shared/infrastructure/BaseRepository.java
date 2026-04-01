@@ -12,9 +12,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-
 @NoRepositoryBean
-public interface BaseRepository<T extends BaseEntity, ID> extends JpaRepository<T, ID>, JpaSpecificationExecutor<T> {
+public interface BaseRepository<T extends BaseEntity, ID>
+        extends JpaRepository<T, ID>, JpaSpecificationExecutor<T> {
 
     @Query("SELECT e FROM #{#entityName} e WHERE e.id = :id AND e.isDeleted = false")
     Optional<T> findActiveById(@Param("id") ID id);
@@ -30,13 +30,14 @@ public interface BaseRepository<T extends BaseEntity, ID> extends JpaRepository<
                        @Param("deletedBy") String deletedBy);
 
     @Modifying
-    @Query("UPDATE #{#entityName} e SET e.isDeleted = false, e.deletedAt = null, " +
-            "e.deletedBy = null WHERE e.id = :id")
+    @Query("UPDATE #{#entityName} e SET e.isDeleted = false, " +
+            "e.deletedAt = null, e.deletedBy = null WHERE e.id = :id")
     int restoreById(@Param("id") ID id);
 
     @Query("SELECT COUNT(e) FROM #{#entityName} e WHERE e.isDeleted = false")
     long countActive();
 
-    @Query("SELECT COUNT(e) > 0 FROM #{#entityName} e WHERE e.id = :id AND e.isDeleted = false")
+    @Query("SELECT COUNT(e) > 0 FROM #{#entityName} e " +
+            "WHERE e.id = :id AND e.isDeleted = false")
     boolean existsActiveById(@Param("id") ID id);
 }

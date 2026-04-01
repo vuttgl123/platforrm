@@ -1,0 +1,79 @@
+package com.meta_forge_platform.runtime.application.mapper;
+
+import com.meta_forge_platform.platform.application.mapper.DpEntityMapper;
+import com.meta_forge_platform.platform.application.mapper.DpWorkflowStateMapper;
+import com.meta_forge_platform.runtime.application.dto.record.*;
+import com.meta_forge_platform.runtime.domain.entity.AppRecord;
+import com.meta_forge_platform.shared.application.mapper.BaseMapper;
+import org.mapstruct.*;
+import java.util.List;
+
+@Mapper(componentModel = "spring",
+        uses = {DpEntityMapper.class, DpWorkflowStateMapper.class},
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE, builder = @Builder(disableBuilder = true))
+public interface AppRecordMapper extends BaseMapper<AppRecord, AppRecordDto, AppRecordSummaryDto, CreateAppRecordCmd, UpdateAppRecordCmd> {
+
+    @Override
+    @Mapping(target = "entity",            source = "entity")
+    @Mapping(target = "currentState",      source = "currentState")
+    @Mapping(target = "parentRecordId",    source = "parentRecord.id")
+    @Mapping(target = "parentDisplayName", source = "parentRecord.displayName")
+    @Mapping(target = "rootRecordId",      source = "rootRecord.id")
+    AppRecordDto toDto(AppRecord entity);
+
+    @Override
+    @Mapping(target = "entityId",          source = "entity.id")
+    @Mapping(target = "entityName",        source = "entity.entityName")
+    @Mapping(target = "currentStateId",    source = "currentState.id")
+    @Mapping(target = "currentStateName",  source = "currentState.stateName")
+    @Mapping(target = "currentStateColor", source = "currentState.colorCode")
+    AppRecordSummaryDto toSummaryDto(AppRecord entity);
+
+    @Override
+    @Mapping(target = "id",             ignore = true)
+    @Mapping(target = "entity",         ignore = true)
+    @Mapping(target = "currentState",   ignore = true)
+    @Mapping(target = "parentRecord",   ignore = true)
+    @Mapping(target = "rootRecord",     ignore = true)
+    @Mapping(target = "values",         ignore = true)
+    @Mapping(target = "outgoingLinks",  ignore = true)
+    @Mapping(target = "incomingLinks",  ignore = true)
+    @Mapping(target = "blobs",          ignore = true)
+    @Mapping(target = "stateHistories", ignore = true)
+    @Mapping(target = "children",       ignore = true)
+    @Mapping(target = "createdAt",      ignore = true)
+    @Mapping(target = "updatedAt",      ignore = true)
+    @Mapping(target = "versionNo",      ignore = true)
+    @Mapping(target = "createdBy",      ignore = true)
+    @Mapping(target = "updatedBy",      ignore = true)
+    @Mapping(target = "isDeleted",      ignore = true)
+    @Mapping(target = "deletedAt",      ignore = true)
+    @Mapping(target = "deletedBy",      ignore = true)
+    AppRecord toEntity(CreateAppRecordCmd command);
+
+    @Override
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "id",             ignore = true)
+    @Mapping(target = "recordCode",     ignore = true)
+    @Mapping(target = "entity",         ignore = true)
+    @Mapping(target = "currentState",   ignore = true)
+    @Mapping(target = "parentRecord",   ignore = true)
+    @Mapping(target = "rootRecord",     ignore = true)
+    @Mapping(target = "values",         ignore = true)
+    @Mapping(target = "outgoingLinks",  ignore = true)
+    @Mapping(target = "incomingLinks",  ignore = true)
+    @Mapping(target = "blobs",          ignore = true)
+    @Mapping(target = "stateHistories", ignore = true)
+    @Mapping(target = "children",       ignore = true)
+    @Mapping(target = "createdAt",      ignore = true)
+    @Mapping(target = "updatedAt",      ignore = true)
+    @Mapping(target = "createdBy",      ignore = true)
+    @Mapping(target = "updatedBy",      ignore = true)
+    @Mapping(target = "isDeleted",      ignore = true)
+    @Mapping(target = "deletedAt",      ignore = true)
+    @Mapping(target = "deletedBy",      ignore = true)
+    void updateEntity(@MappingTarget AppRecord entity, UpdateAppRecordCmd command);
+
+    @Override List<AppRecordDto> toDtoList(List<AppRecord> entities);
+    @Override List<AppRecordSummaryDto> toSummaryDtoList(List<AppRecord> entities);
+}
