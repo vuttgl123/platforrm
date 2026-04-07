@@ -12,27 +12,17 @@ import java.util.Optional;
 @Repository
 public interface DpEntityRelationRepository extends BaseRepository<DpEntityRelation, Long> {
 
-    Optional<DpEntityRelation> findBySourceEntity_IdAndRelationCodeAndIsDeletedFalse(
-            Long sourceEntityId, String relationCode);
-
-    // ── Tìm theo source entity ────────────────────────────────────────────────
+    Optional<DpEntityRelation> findBySourceEntity_IdAndRelationCodeAndIsDeletedFalse(Long sourceEntityId, String relationCode);
 
     List<DpEntityRelation> findAllBySourceEntity_IdAndIsDeletedFalse(Long sourceEntityId);
 
-    List<DpEntityRelation> findAllBySourceEntity_IdAndRelationKindAndIsDeletedFalse(
-            Long sourceEntityId, String relationKind);
-
-    // ── Tìm theo target entity ────────────────────────────────────────────────
+    List<DpEntityRelation> findAllBySourceEntity_IdAndRelationKindAndIsDeletedFalse(Long sourceEntityId, String relationKind);
 
     List<DpEntityRelation> findAllByTargetEntity_IdAndIsDeletedFalse(Long targetEntityId);
-
-    // ── Tìm tất cả quan hệ liên quan đến một entity (cả hai chiều) ───────────
 
     @Query("SELECT r FROM DpEntityRelation r WHERE r.isDeleted = false AND " +
             "(r.sourceEntity.id = :entityId OR r.targetEntity.id = :entityId)")
     List<DpEntityRelation> findAllRelatedToEntity(@Param("entityId") Long entityId);
-
-    // ── Kiểm tra quan hệ đã tồn tại giữa hai entity chưa ────────────────────
 
     @Query("SELECT COUNT(r) > 0 FROM DpEntityRelation r WHERE r.isDeleted = false " +
             "AND r.sourceEntity.id = :sourceId AND r.targetEntity.id = :targetId " +

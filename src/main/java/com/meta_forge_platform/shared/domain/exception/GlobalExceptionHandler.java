@@ -1,10 +1,9 @@
 package com.meta_forge_platform.shared.domain.exception;
 
-import com.meta_forge_platform.shared.interfaces.ApiResponse;
 import jakarta.persistence.OptimisticLockException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
@@ -14,65 +13,135 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
+    private final MessageResolver messageResolver;
+
     @ExceptionHandler(AppException.class)
-    public ResponseEntity<ApiResponse<?>> handleAppException(AppException ex) {
-        log.warn("AppException: [{}] {}", ex.getErrorCode().getCode(), ex.getMessage());
-        ApiResponse<?> response = ApiResponse.error(ex.getErrorCode(), ex.getMessage());
-        return ResponseEntity.status(ex.getErrorCode().getHttpStatus()).body(response);
+    public ResponseEntity<ApiErrorResponse> handleAppException(AppException ex, Locale locale) {
+        String message = messageResolver.resolve(
+                ex.getErrorCode(),
+                ex.getArgs(),
+                locale
+        );
+
+        log.warn("AppException [{}]: {}", ex.getErrorCode().name(), message);
+
+        return ResponseEntity.status(ex.getErrorCode().getHttpStatus())
+                .body(ApiErrorResponse.of(
+                        ex.getErrorCode().name(),
+                        message,
+                        ex.getMeta()
+                ));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<?>> handleValidation(MethodArgumentNotValidException ex) {
-        Map<String, String> fieldErrors = new HashMap<>();
+    public ResponseEntity<ApiErrorResponse> handleValidation(
+            MethodArgumentNotValidException ex,
+            Locale locale
+    ) {
+        Map<String, String> errors = new HashMap<>();
+
         for (FieldError err : ex.getBindingResult().getFieldErrors()) {
-            fieldErrors.put(err.getField(), err.getDefaultMessage());
+            errors.put(err.getField(), err.getDefaultMessage());
         }
-        log.warn("Validation error: {}", fieldErrors);
 
-        ApiResponse<?> response = ApiResponse.<Map<String, String>>builder()
-                .code(ErrorCode.VALIDATION_ERROR.getCode())
-                .message("Dữ liệu đầu vào không hợp lệ")
-                .data(fieldErrors)
-                .timestamp(java.time.LocalDateTime.now())
-                .build();
+        String message = messageResolver.resolve(
+                ErrorCode.VALIDATION_ERROR,
+                null,
+                locale
+        );
 
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
+        return ResponseEntity.status(ErrorCode.VALIDATION_ERROR.getHttpStatus())
+                .body(ApiErrorResponse.of(
+                        ErrorCode.VALIDATION_ERROR.name(),
+                        message,
+                        errors
+                ));
     }
 
     @ExceptionHandler({
             OptimisticLockException.class,
-            ObjectOptimisticLockingFailureException.class,
-            jakarta.persistence.OptimisticLockException.class
+            ObjectOptimisticLockingFailureException.class
     })
-    public ResponseEntity<ApiResponse<?>> handleOptimisticLock(Exception ex) {
-        log.warn("Optimistic lock conflict: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error(ErrorCode.OPTIMISTIC_LOCK));
+    public ResponseEntity<ApiErrorResponse> handleOptimisticLock(Exception ex, Locale locale) {
+        String message = messageResolver.resolve(
+                ErrorCode.OPTIMISTIC_LOCK,
+                null,
+                locale
+        );
+
+        log.warn("Optimistic lock conflict", ex);
+
+        return ResponseEntity.status(ErrorCode.OPTIMISTIC_LOCK.getHttpStatus())
+                .body(ApiErrorResponse.of(
+                        ErrorCode.OPTIMISTIC_LOCK.name(),
+                        message,
+                        null
+                ));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ApiResponse<?>> handleDataIntegrity(DataIntegrityViolationException ex) {
-        log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error(ErrorCode.CONFLICT, "Dữ liệu đã tồn tại hoặc vi phạm ràng buộc"));
+    public ResponseEntity<ApiErrorResponse> handleDataIntegrity(
+            DataIntegrityViolationException ex,
+            Locale locale
+    ) {
+        String message = messageResolver.resolve(
+                ErrorCode.CONFLICT,
+                null,
+                locale
+        );
+
+        log.warn("Data integrity violation", ex);
+
+        return ResponseEntity.status(ErrorCode.CONFLICT.getHttpStatus())
+                .body(ApiErrorResponse.of(
+                        ErrorCode.CONFLICT.name(),
+                        message,
+                        null
+                ));
     }
 
     @ExceptionHandler(NoHandlerFoundException.class)
-    public ResponseEntity<ApiResponse<?>> handleNotFound(NoHandlerFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error(ErrorCode.NOT_FOUND, "Không tìm thấy endpoint: " + ex.getRequestURL()));
+    public ResponseEntity<ApiErrorResponse> handleNotFound(
+            NoHandlerFoundException ex,
+            Locale locale
+    ) {
+        String message = messageResolver.resolve(
+                ErrorCode.NOT_FOUND,
+                null,
+                locale
+        );
+
+        return ResponseEntity.status(ErrorCode.NOT_FOUND.getHttpStatus())
+                .body(ApiErrorResponse.of(
+                        ErrorCode.NOT_FOUND.name(),
+                        message,
+                        ex.getRequestURL()
+                ));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<?>> handleGeneral(Exception ex) {
+    public ResponseEntity<ApiErrorResponse> handleGeneral(Exception ex, Locale locale) {
+        String message = messageResolver.resolve(
+                ErrorCode.INTERNAL_ERROR,
+                null,
+                locale
+        );
+
         log.error("Unhandled exception", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(ErrorCode.INTERNAL_ERROR, "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau"));
+
+        return ResponseEntity.status(ErrorCode.INTERNAL_ERROR.getHttpStatus())
+                .body(ApiErrorResponse.of(
+                        ErrorCode.INTERNAL_ERROR.name(),
+                        message,
+                        null
+                ));
     }
 }

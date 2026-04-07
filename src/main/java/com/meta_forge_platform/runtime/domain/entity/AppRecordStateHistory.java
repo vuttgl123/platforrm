@@ -3,41 +3,39 @@ package com.meta_forge_platform.runtime.domain.entity;
 import com.meta_forge_platform.platform.domain.entity.DpWorkflow;
 import com.meta_forge_platform.platform.domain.entity.DpWorkflowState;
 import com.meta_forge_platform.platform.domain.entity.DpWorkflowTransition;
-import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
+import com.meta_forge_platform.shared.domain.base.BaseAuditEntity;
+import com.meta_forge_platform.shared.domain.exception.AppException;
+import com.meta_forge_platform.shared.domain.exception.ErrorCode;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.SQLDelete;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "app_record_state_history")
-@SQLDelete(sql = "UPDATE app_record_state_history SET is_deleted = true, deleted_at = NOW() WHERE id = ?")
-public class AppRecordStateHistory extends SoftDeletableEntity {
+public class AppRecordStateHistory extends BaseAuditEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "record_id", nullable = false, foreignKey = @ForeignKey(name = "fk_app_record_state_history_record"))
+    @JoinColumn(name = "record_id", nullable = false)
     private AppRecord record;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "workflow_id", nullable = false, foreignKey = @ForeignKey(name = "fk_app_record_state_history_workflow"))
+    @JoinColumn(name = "workflow_id", nullable = false)
     private DpWorkflow workflow;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "from_state_id", foreignKey = @ForeignKey(name = "fk_app_record_state_history_from_state"))
+    @JoinColumn(name = "from_state_id")
     private DpWorkflowState fromState;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "to_state_id", nullable = false, foreignKey = @ForeignKey(name = "fk_app_record_state_history_to_state"))
+    @JoinColumn(name = "to_state_id", nullable = false)
     private DpWorkflowState toState;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transition_id", foreignKey = @ForeignKey(name = "fk_app_record_state_history_transition"))
+    @JoinColumn(name = "transition_id")
     private DpWorkflowTransition transition;
 
     @Column(name = "action_code", length = 100)
@@ -47,6 +45,47 @@ public class AppRecordStateHistory extends SoftDeletableEntity {
     private String note;
 
     @Column(name = "changed_at", nullable = false)
-    @Builder.Default
-    private LocalDateTime changedAt = LocalDateTime.now();
+    private LocalDateTime changedAt;
+
+    public static AppRecordStateHistory create(
+            AppRecord record,
+            DpWorkflow workflow,
+            DpWorkflowState fromState,
+            DpWorkflowState toState,
+            DpWorkflowTransition transition,
+            String actionCode,
+            String note
+    ) {
+        AppRecordStateHistory history = new AppRecordStateHistory();
+        history.record = record;
+        history.workflow = workflow;
+        history.fromState = fromState;
+        history.toState = toState;
+        history.transition = transition;
+        history.actionCode = actionCode;
+        history.note = note;
+        history.changedAt = LocalDateTime.now();
+        history.validateTopology();
+        return history;
+    }
+
+    private void validateTopology() {
+        if (record == null || workflow == null || toState == null) {
+            throw AppException.of(ErrorCode.BAD_REQUEST, "STATE_HISTORY_INVALID");
+        }
+
+        Long workflowId = workflow.getId();
+
+        if (fromState != null && !workflowId.equals(fromState.getWorkflow().getId())) {
+            throw AppException.of(ErrorCode.BAD_REQUEST, "STATE_HISTORY_FROM_STATE_WORKFLOW_MISMATCH");
+        }
+
+        if (!workflowId.equals(toState.getWorkflow().getId())) {
+            throw AppException.of(ErrorCode.BAD_REQUEST, "STATE_HISTORY_TO_STATE_WORKFLOW_MISMATCH");
+        }
+
+        if (transition != null && !workflowId.equals(transition.getWorkflow().getId())) {
+            throw AppException.of(ErrorCode.BAD_REQUEST, "STATE_HISTORY_TRANSITION_WORKFLOW_MISMATCH");
+        }
+    }
 }

@@ -1,45 +1,39 @@
 package com.meta_forge_platform.runtime.domain.entity;
 
-import com.meta_forge_platform.platform.domain.entity.DpEntity;
 import com.meta_forge_platform.platform.domain.entity.DpField;
 import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
+import com.meta_forge_platform.shared.domain.exception.AppException;
+import com.meta_forge_platform.shared.domain.exception.ErrorCode;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.SQLDelete;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
-@Table(name = "app_record_value",
+@Table(
+        name = "app_record_value",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_app_record_value_unique",
-                columnNames = {"record_id", "field_id", "seq_no"}))
-@SQLDelete(sql = "UPDATE app_record_value SET is_deleted = true, deleted_at = NOW() WHERE id = ?")
+                columnNames = {"record_id", "field_id", "seq_no"}
+        )
+)
 public class AppRecordValue extends SoftDeletableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "record_id", nullable = false, foreignKey = @ForeignKey(name = "fk_app_record_value_record"))
+    @JoinColumn(name = "record_id", nullable = false)
     private AppRecord record;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "entity_id", nullable = false, foreignKey = @ForeignKey(name = "fk_app_record_value_entity"))
-    private DpEntity entity;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "field_id", nullable = false, foreignKey = @ForeignKey(name = "fk_app_record_value_field"))
+    @JoinColumn(name = "field_id", nullable = false)
     private DpField field;
 
     @Column(name = "seq_no", nullable = false)
-    @Builder.Default
-    private Integer seqNo = 0;
+    private Integer seqNo;
 
     @Column(name = "value_string", length = 1000)
     private String valueString;
@@ -65,30 +59,69 @@ public class AppRecordValue extends SoftDeletableEntity {
     @Column(name = "value_json", columnDefinition = "JSON")
     private String valueJson;
 
-    public Object resolveValue() {
-        if (valueString   != null) return valueString;
-        if (valueText     != null) return valueText;
-        if (valueInteger  != null) return valueInteger;
-        if (valueDecimal  != null) return valueDecimal;
-        if (valueBoolean  != null) return valueBoolean;
-        if (valueDate     != null) return valueDate;
-        if (valueDatetime != null) return valueDatetime;
-        if (valueJson     != null) return valueJson;
-        return null;
+    public static AppRecordValue create(AppRecord record, DpField field, Integer seqNo) {
+        AppRecordValue value = new AppRecordValue();
+        value.record = record;
+        value.field = field;
+        value.seqNo = seqNo == null ? 0 : seqNo;
+        return value;
     }
 
-    public void setValue(String dataType, Object value) {
-        if (value == null) return;
-        switch (dataType.toUpperCase()) {
-            case "TEXT", "AUTO_NUMBER", "SELECT" -> valueString = value.toString();
-            case "RICH_TEXT", "FORMULA"          -> valueText   = value.toString();
-            case "NUMBER", "REFERENCE"           -> valueInteger = ((Number) value).longValue();
-            case "DECIMAL"                       -> valueDecimal = new BigDecimal(value.toString());
-            case "BOOLEAN"                       -> valueBoolean = (Boolean) value;
-            case "DATE"                          -> valueDate = (LocalDate) value;
-            case "DATETIME"                      -> valueDatetime = (LocalDateTime) value;
-            case "JSON", "MULTI_SELECT"          -> valueJson = value.toString();
-            default                              -> valueString = value.toString();
+    public void writeString(String value) {
+        clearValues();
+        this.valueString = value;
+    }
+
+    public void writeText(String value) {
+        clearValues();
+        this.valueText = value;
+    }
+
+    public void writeInteger(Long value) {
+        clearValues();
+        this.valueInteger = value;
+    }
+
+    public void writeDecimal(BigDecimal value) {
+        clearValues();
+        this.valueDecimal = value;
+    }
+
+    public void writeBoolean(Boolean value) {
+        clearValues();
+        this.valueBoolean = value;
+    }
+
+    public void writeDate(LocalDate value) {
+        clearValues();
+        this.valueDate = value;
+    }
+
+    public void writeDateTime(LocalDateTime value) {
+        clearValues();
+        this.valueDatetime = value;
+    }
+
+    public void writeJson(String value) {
+        clearValues();
+        this.valueJson = value;
+    }
+
+    public void delete(String deletedBy) {
+        if (isDeleted()) {
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
         }
+        softDelete(deletedBy);
+    }
+
+    private void clearValues() {
+        this.valueString = null;
+        this.valueText = null;
+        this.valueInteger = null;
+        this.valueDecimal = null;
+        this.valueBoolean = null;
+        this.valueDate = null;
+        this.valueDatetime = null;
+        this.valueJson = null;
     }
 }

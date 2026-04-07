@@ -13,32 +13,19 @@ import java.util.Optional;
 @Repository
 public interface DpFieldOptionRepository extends BaseRepository<DpFieldOption, Long> {
 
-    Optional<DpFieldOption> findByField_IdAndOptionCodeAndIsDeletedFalse(
-            Long fieldId, String optionCode);
+    Optional<DpFieldOption> findByField_IdAndOptionCodeAndIsDeletedFalse(Long fieldId, String optionCode);
 
-    boolean existsByField_IdAndOptionCodeAndIsDeletedFalse(
-            Long fieldId, String optionCode);
+    boolean existsByField_IdAndOptionCodeAndIsDeletedFalse(Long fieldId, String optionCode);
 
-    // ── Lấy tất cả option theo field ─────────────────────────────────────────
+    List<DpFieldOption> findAllByField_IdAndIsDeletedFalseOrderBySortOrderAsc(Long fieldId);
 
-    List<DpFieldOption> findAllByField_IdAndIsDeletedFalseOrderBySortOrderAsc(
-            Long fieldId);
-
-    List<DpFieldOption> findAllByField_IdAndIsActiveTrueAndIsDeletedFalseOrderBySortOrderAsc(
-            Long fieldId);
-
-    // ── Lấy option mặc định ───────────────────────────────────────────────────
+    List<DpFieldOption> findAllByField_IdAndIsActiveTrueAndIsDeletedFalseOrderBySortOrderAsc(Long fieldId);
 
     Optional<DpFieldOption> findByField_IdAndIsDefaultTrueAndIsDeletedFalse(Long fieldId);
-
-    // ── Xóa toàn bộ option của field ─────────────────────────────────────────
 
     @Modifying
     @Query("UPDATE DpFieldOption o SET o.isDeleted = true WHERE o.field.id = :fieldId")
     int softDeleteByFieldId(@Param("fieldId") Long fieldId);
 
-    // ── Tìm theo giá trị ─────────────────────────────────────────────────────
-
-    Optional<DpFieldOption> findByField_IdAndOptionValueAndIsDeletedFalse(
-            Long fieldId, String optionValue);
+    Optional<DpFieldOption> findByField_IdAndOptionValueAndIsDeletedFalse(Long fieldId, String optionValue);
 }

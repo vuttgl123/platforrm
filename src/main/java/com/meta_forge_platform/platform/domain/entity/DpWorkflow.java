@@ -1,31 +1,31 @@
 package com.meta_forge_platform.platform.domain.entity;
 
 import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
+import com.meta_forge_platform.shared.domain.exception.AppException;
+import com.meta_forge_platform.shared.domain.exception.ErrorCode;
 import com.meta_forge_platform.shared.infrastructure.converter.JsonConverter;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.SQLDelete;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
-@Table(name = "dp_workflow",
+@Table(
+        name = "dp_workflow",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_dp_workflow_entity_code",
-                columnNames = {"entity_id", "workflow_code"}))
-@SQLDelete(sql = "UPDATE dp_workflow SET is_deleted = true, deleted_at = NOW() WHERE id = ?")
+                columnNames = {"entity_id", "workflow_code"}
+        )
+)
 public class DpWorkflow extends SoftDeletableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "entity_id", nullable = false, foreignKey = @ForeignKey(name = "fk_dp_workflow_entity"))
+    @JoinColumn(name = "entity_id", nullable = false)
     private DpEntity entity;
 
     @Column(name = "workflow_code", nullable = false, length = 100)
@@ -38,22 +38,66 @@ public class DpWorkflow extends SoftDeletableEntity {
     private String description;
 
     @Column(name = "is_default", nullable = false)
-    @Builder.Default
-    private Boolean isDefault = true;
+    private Boolean isDefault;
 
     @Column(name = "is_active", nullable = false)
-    @Builder.Default
-    private Boolean isActive = true;
+    private Boolean isActive;
 
     @Convert(converter = JsonConverter.MapConverter.class)
     @Column(name = "config_json", columnDefinition = "JSON")
-    private Map<String, Object> configJson;
+    private Map<String, Object> config;
 
-    @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
+    @OneToMany(mappedBy = "workflow", fetch = FetchType.LAZY)
     private List<DpWorkflowState> states = new ArrayList<>();
 
-    @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
+    @OneToMany(mappedBy = "workflow", fetch = FetchType.LAZY)
     private List<DpWorkflowTransition> transitions = new ArrayList<>();
+
+    public static DpWorkflow create(
+            DpEntity entity,
+            String code,
+            String name,
+            String description
+    ) {
+        DpWorkflow workflow = new DpWorkflow();
+        workflow.entity = entity;
+        workflow.workflowCode = code;
+        workflow.workflowName = name;
+        workflow.description = description;
+        workflow.isDefault = false;
+        workflow.isActive = true;
+        return workflow;
+    }
+
+    public void updateInfo(String name, String description) {
+        this.workflowName = name;
+        this.description = description;
+    }
+
+    public void updateConfig(Map<String, Object> config) {
+        this.config = config;
+    }
+
+    public void markDefault() {
+        this.isDefault = true;
+    }
+
+    public void unmarkDefault() {
+        this.isDefault = false;
+    }
+
+    public void activate() {
+        this.isActive = true;
+    }
+
+    public void deactivate() {
+        this.isActive = false;
+    }
+
+    public void delete(String deletedBy) {
+        if (isDeleted()) {
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+        }
+        softDelete(deletedBy);
+    }
 }

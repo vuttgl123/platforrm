@@ -5,6 +5,11 @@ spring:
     open-in-view: false
   profiles:
     active: dev
+  freemarker:
+    suffix: .ftl
+    template-loader-path: classpath:/templates/
+    cache: false
+    charset: UTF-8
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver

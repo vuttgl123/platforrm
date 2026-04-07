@@ -1,30 +1,27 @@
 package com.meta_forge_platform.platform.domain.entity;
 
+import com.meta_forge_platform.platform.domain.enumeration.GroupLayoutType;
 import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
+import com.meta_forge_platform.shared.domain.exception.AppException;
+import com.meta_forge_platform.shared.domain.exception.ErrorCode;
 import com.meta_forge_platform.shared.infrastructure.converter.JsonConverter;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.SQLDelete;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "dp_field_group",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_dp_field_group_entity_code",
                 columnNames = {"entity_id", "group_code"}))
-@SQLDelete(sql = "UPDATE dp_field_group SET is_deleted = true, deleted_at = NOW() WHERE id = ?")
 public class DpFieldGroup extends SoftDeletableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "entity_id", nullable = false, foreignKey = @ForeignKey(name = "fk_dp_field_group_entity"))
+    @JoinColumn(name = "entity_id", nullable = false)
     private DpEntity entity;
 
     @Column(name = "group_code", nullable = false, length = 100)
@@ -34,14 +31,48 @@ public class DpFieldGroup extends SoftDeletableEntity {
     private String groupName;
 
     @Column(name = "sort_order", nullable = false)
-    @Builder.Default
-    private Integer sortOrder = 0;
+    private Integer sortOrder;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "layout_type", nullable = false)
+    private GroupLayoutType layoutType;
 
     @Convert(converter = JsonConverter.MapConverter.class)
     @Column(name = "config_json", columnDefinition = "JSON")
-    private Map<String, Object> configJson;
+    private Map<String, Object> config;
 
-    @OneToMany(mappedBy = "fieldGroup")
-    @Builder.Default
-    private List<DpField> fields = new ArrayList<>();
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive;
+
+    public static DpFieldGroup create(DpEntity entity, String code, String name) {
+        DpFieldGroup g = new DpFieldGroup();
+        g.entity = entity;
+        g.groupCode = code;
+        g.groupName = name;
+        g.sortOrder = 0;
+        g.layoutType = GroupLayoutType.VERTICAL;
+        g.isActive = true;
+        return g;
+    }
+
+    public void update(String name, Integer sortOrder, GroupLayoutType layoutType) {
+        this.groupName = name;
+        this.sortOrder = sortOrder;
+        this.layoutType = layoutType;
+    }
+
+    public void activate() {
+        this.isActive = true;
+    }
+
+    public void deactivate() {
+        this.isActive = false;
+    }
+
+    public void delete(String deletedBy) {
+        if (isDeleted()) {
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+        }
+        softDelete(deletedBy);
+    }
 }

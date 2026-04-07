@@ -13,11 +13,9 @@ import java.util.Optional;
 @Repository
 public interface DpFieldGroupRepository extends BaseRepository<DpFieldGroup, Long> {
 
-    Optional<DpFieldGroup> findByEntity_IdAndGroupCodeAndIsDeletedFalse(
-            Long entityId, String groupCode);
+    Optional<DpFieldGroup> findByEntity_IdAndGroupCodeAndIsDeletedFalse(Long entityId, String groupCode);
 
-    boolean existsByEntity_IdAndGroupCodeAndIsDeletedFalse(
-            Long entityId, String groupCode);
+    boolean existsByEntity_IdAndGroupCodeAndIsDeletedFalse(Long entityId, String groupCode);
 
     @Query("SELECT COUNT(g) > 0 FROM DpFieldGroup g WHERE g.entity.id = :entityId " +
             "AND g.groupCode = :code AND g.id <> :excludeId AND g.isDeleted = false")
@@ -25,18 +23,11 @@ public interface DpFieldGroupRepository extends BaseRepository<DpFieldGroup, Lon
                                            @Param("code") String code,
                                            @Param("excludeId") Long excludeId);
 
-    // ── Lấy tất cả group theo entity, sắp xếp ────────────────────────────────
-
-    List<DpFieldGroup> findAllByEntity_IdAndIsDeletedFalseOrderBySortOrderAsc(
-            Long entityId);
-
-    // ── Xóa toàn bộ group của entity (dùng khi xóa entity) ───────────────────
+    List<DpFieldGroup> findAllByEntity_IdAndIsDeletedFalseOrderBySortOrderAsc(Long entityId);
 
     @Modifying
     @Query("UPDATE DpFieldGroup g SET g.isDeleted = true WHERE g.entity.id = :entityId")
     int softDeleteByEntityId(@Param("entityId") Long entityId);
-
-    // ── Count ─────────────────────────────────────────────────────────────────
 
     long countByEntity_IdAndIsDeletedFalse(Long entityId);
 }

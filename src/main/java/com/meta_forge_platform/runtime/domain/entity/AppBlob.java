@@ -1,28 +1,29 @@
 package com.meta_forge_platform.runtime.domain.entity;
 
+import com.meta_forge_platform.runtime.domain.enumeration.BlobStorageProvider;
 import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
+import com.meta_forge_platform.shared.domain.exception.AppException;
+import com.meta_forge_platform.shared.domain.exception.ErrorCode;
 import com.meta_forge_platform.shared.infrastructure.converter.JsonConverter;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.SQLDelete;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
-
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
-@Table(name = "app_blob",
+@Table(
+        name = "app_blob",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_app_blob_code",
-                columnNames = "blob_code"))
-@SQLDelete(sql = "UPDATE app_blob SET is_deleted = true, deleted_at = NOW() WHERE id = ?")
+                columnNames = "blob_code"
+        )
+)
 public class AppBlob extends SoftDeletableEntity {
 
-    @Column(name = "blob_code", length = 100)
+    @Column(name = "blob_code", length = 100, nullable = false)
     private String blobCode;
 
     @Column(name = "file_name", nullable = false, length = 500)
@@ -34,9 +35,9 @@ public class AppBlob extends SoftDeletableEntity {
     @Column(name = "file_size", nullable = false)
     private Long fileSize;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "storage_provider", nullable = false, length = 50)
-    @Builder.Default
-    private String storageProvider = "LOCAL";
+    private BlobStorageProvider storageProvider;
 
     @Column(name = "storage_key", nullable = false, length = 1000)
     private String storageKey;
@@ -46,22 +47,51 @@ public class AppBlob extends SoftDeletableEntity {
 
     @Convert(converter = JsonConverter.MapConverter.class)
     @Column(name = "metadata_json", columnDefinition = "JSON")
-    private Map<String, Object> metadataJson;
+    private Map<String, Object> metadata;
+
+    public static AppBlob create(
+            String blobCode,
+            String fileName,
+            String contentType,
+            Long fileSize,
+            BlobStorageProvider storageProvider,
+            String storageKey,
+            String checksum,
+            Map<String, Object> metadata
+    ) {
+        AppBlob blob = new AppBlob();
+        blob.blobCode = blobCode;
+        blob.fileName = fileName;
+        blob.contentType = contentType;
+        blob.fileSize = fileSize;
+        blob.storageProvider = storageProvider;
+        blob.storageKey = storageKey;
+        blob.checksum = checksum;
+        blob.metadata = metadata;
+        return blob;
+    }
+
+    public void updateMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
+
+    public void moveStorage(BlobStorageProvider storageProvider, String storageKey) {
+        this.storageProvider = storageProvider;
+        this.storageKey = storageKey;
+    }
 
     public boolean isImage() {
         return contentType != null && contentType.startsWith("image/");
     }
 
-    public String getExtension() {
-        if (fileName == null || !fileName.contains(".")) return "";
-        return fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
+    public boolean isPdf() {
+        return "application/pdf".equalsIgnoreCase(contentType);
     }
 
-    public String getFileSizeFormatted() {
-        if (fileSize == null) return "0 B";
-        if (fileSize < 1024) return fileSize + " B";
-        if (fileSize < 1024 * 1024) return String.format("%.1f KB", fileSize / 1024.0);
-        if (fileSize < 1024 * 1024 * 1024) return String.format("%.1f MB", fileSize / (1024.0 * 1024));
-        return String.format("%.1f GB", fileSize / (1024.0 * 1024 * 1024));
+    public void delete(String deletedBy) {
+        if (isDeleted()) {
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+        }
+        softDelete(deletedBy);
     }
 }

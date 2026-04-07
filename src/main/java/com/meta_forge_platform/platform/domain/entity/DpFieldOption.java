@@ -1,28 +1,27 @@
 package com.meta_forge_platform.platform.domain.entity;
 
+import com.meta_forge_platform.platform.domain.entity.DpField;
 import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
+import com.meta_forge_platform.shared.domain.exception.AppException;
+import com.meta_forge_platform.shared.domain.exception.ErrorCode;
 import com.meta_forge_platform.shared.infrastructure.converter.JsonConverter;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.SQLDelete;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "dp_field_option",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_dp_field_option_code",
                 columnNames = {"field_id", "option_code"}))
-@SQLDelete(sql = "UPDATE dp_field_option SET is_deleted = true, deleted_at = NOW() WHERE id = ?")
 public class DpFieldOption extends SoftDeletableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "field_id", nullable = false, foreignKey = @ForeignKey(name = "fk_dp_field_option_field"))
+    @JoinColumn(name = "field_id", nullable = false)
     private DpField field;
 
     @Column(name = "option_code", nullable = false, length = 100)
@@ -38,18 +37,57 @@ public class DpFieldOption extends SoftDeletableEntity {
     private String colorCode;
 
     @Column(name = "sort_order", nullable = false)
-    @Builder.Default
-    private Integer sortOrder = 0;
+    private Integer sortOrder;
 
     @Column(name = "is_default", nullable = false)
-    @Builder.Default
-    private Boolean isDefault = false;
+    private Boolean isDefault;
 
     @Column(name = "is_active", nullable = false)
-    @Builder.Default
-    private Boolean isActive = true;
+    private Boolean isActive;
 
     @Convert(converter = JsonConverter.MapConverter.class)
     @Column(name = "config_json", columnDefinition = "JSON")
-    private Map<String, Object> configJson;
+    private Map<String, Object> config;
+
+    public static DpFieldOption create(
+            DpField field,
+            String code,
+            String label,
+            String value
+    ) {
+        DpFieldOption o = new DpFieldOption();
+        o.field = field;
+        o.optionCode = code;
+        o.optionLabel = label;
+        o.optionValue = value;
+        o.sortOrder = 0;
+        o.isDefault = false;
+        o.isActive = true;
+        return o;
+    }
+
+    public void update(String label, String value, String color) {
+        this.optionLabel = label;
+        this.optionValue = value;
+        this.colorCode = color;
+    }
+
+    public void setDefault(boolean isDefault) {
+        this.isDefault = isDefault;
+    }
+
+    public void activate() {
+        this.isActive = true;
+    }
+
+    public void deactivate() {
+        this.isActive = false;
+    }
+
+    public void delete(String deletedBy) {
+        if (isDeleted()) {
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+        }
+        softDelete(deletedBy);
+    }
 }

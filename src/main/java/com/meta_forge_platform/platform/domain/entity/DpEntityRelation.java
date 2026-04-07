@@ -1,28 +1,27 @@
 package com.meta_forge_platform.platform.domain.entity;
 
+import com.meta_forge_platform.platform.domain.enumeration.RelationType;
 import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
+import com.meta_forge_platform.shared.domain.exception.AppException;
+import com.meta_forge_platform.shared.domain.exception.ErrorCode;
 import com.meta_forge_platform.shared.infrastructure.converter.JsonConverter;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.SQLDelete;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "dp_entity_relation",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_dp_entity_relation_code",
                 columnNames = {"source_entity_id", "relation_code"}))
-@SQLDelete(sql = "UPDATE dp_entity_relation SET is_deleted = true, deleted_at = NOW() WHERE id = ?")
 public class DpEntityRelation extends SoftDeletableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "source_entity_id", nullable = false, foreignKey = @ForeignKey(name = "fk_dp_entity_relation_source"))
+    @JoinColumn(name = "source_entity_id", nullable = false)
     private DpEntity sourceEntity;
 
     @Column(name = "relation_code", nullable = false, length = 100)
@@ -32,17 +31,62 @@ public class DpEntityRelation extends SoftDeletableEntity {
     private String relationName;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "target_entity_id", nullable = false, foreignKey = @ForeignKey(name = "fk_dp_entity_relation_target"))
+    @JoinColumn(name = "target_entity_id", nullable = false)
     private DpEntity targetEntity;
 
-    @Column(name = "relation_kind", nullable = false, length = 30)
-    private String relationKind;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "relation_type", nullable = false)
+    private RelationType relationType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "mapped_by_field_id", foreignKey = @ForeignKey(name = "fk_dp_entity_relation_mapped_by_field"))
-    private DpField mappedByField;
+    @JoinColumn(name = "owner_field_id")
+    private DpField ownerField;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inverse_field_id")
+    private DpField inverseField;
 
     @Convert(converter = JsonConverter.MapConverter.class)
     @Column(name = "config_json", columnDefinition = "JSON")
-    private Map<String, Object> configJson;
+    private Map<String, Object> config;
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive;
+
+    public static DpEntityRelation create(
+            DpEntity source,
+            DpEntity target,
+            String code,
+            String name,
+            RelationType type
+    ) {
+        DpEntityRelation r = new DpEntityRelation();
+        r.sourceEntity = source;
+        r.targetEntity = target;
+        r.relationCode = code;
+        r.relationName = name;
+        r.relationType = type;
+        r.isActive = true;
+        return r;
+    }
+
+    public void attachFields(DpField owner, DpField inverse) {
+        this.ownerField = owner;
+        this.inverseField = inverse;
+    }
+
+    public void activate() {
+        this.isActive = true;
+    }
+
+    public void deactivate() {
+        this.isActive = false;
+    }
+
+    public void delete(String deletedBy) {
+        if (isDeleted()) {
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+        }
+        softDelete(deletedBy);
+    }
 }

@@ -1,35 +1,33 @@
 package com.meta_forge_platform.platform.domain.entity;
 
+import com.meta_forge_platform.platform.domain.entity.DpEntity;
+import com.meta_forge_platform.platform.domain.enumeration.FieldDataType;
+import com.meta_forge_platform.platform.domain.enumeration.FieldStorageType;
+import com.meta_forge_platform.platform.domain.enumeration.FieldUiType;
+import com.meta_forge_platform.platform.domain.enumeration.RelationType;
 import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
+import com.meta_forge_platform.shared.domain.exception.AppException;
+import com.meta_forge_platform.shared.domain.exception.ErrorCode;
 import com.meta_forge_platform.shared.infrastructure.converter.JsonConverter;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.SQLDelete;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "dp_field",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_dp_field_entity_code",
                 columnNames = {"entity_id", "field_code"}))
-@SQLDelete(sql = "UPDATE dp_field SET is_deleted = true, deleted_at = NOW() WHERE id = ?")
 public class DpField extends SoftDeletableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "entity_id", nullable = false, foreignKey = @ForeignKey(name = "fk_dp_field_entity"))
+    @JoinColumn(name = "entity_id", nullable = false)
     private DpEntity entity;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "field_group_id", foreignKey = @ForeignKey(name = "fk_dp_field_group"))
-    private DpFieldGroup fieldGroup;
 
     @Column(name = "field_code", nullable = false, length = 100)
     private String fieldCode;
@@ -37,76 +35,96 @@ public class DpField extends SoftDeletableEntity {
     @Column(name = "field_name", nullable = false, length = 255)
     private String fieldName;
 
-    @Column(name = "data_type", nullable = false, length = 50)
-    private String dataType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "data_type", nullable = false)
+    private FieldDataType dataType;
 
-    @Column(name = "ui_type", length = 50)
-    private String uiType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ui_type")
+    private FieldUiType uiType;
 
-    @Column(name = "storage_type", nullable = false, length = 30)
-    @Builder.Default
-    private String storageType = "SCALAR";
+    @Enumerated(EnumType.STRING)
+    @Column(name = "storage_type", nullable = false)
+    private FieldStorageType storageType;
 
-    @Column(name = "is_required", nullable = false)
-    @Builder.Default
-    private Boolean isRequired = false;
-
-    @Column(name = "is_unique_field", nullable = false)
-    @Builder.Default
-    private Boolean isUniqueField = false;
-
-    @Column(name = "is_searchable", nullable = false)
-    @Builder.Default
-    private Boolean isSearchable = false;
-
-    @Column(name = "is_filterable", nullable = false)
-    @Builder.Default
-    private Boolean isFilterable = false;
-
-    @Column(name = "is_sortable", nullable = false)
-    @Builder.Default
-    private Boolean isSortable = false;
-
-    @Column(name = "is_listable", nullable = false)
-    @Builder.Default
-    private Boolean isListable = true;
-
-    @Column(name = "is_detail_visible", nullable = false)
-    @Builder.Default
-    private Boolean isDetailVisible = true;
-
-    @Column(name = "is_editable", nullable = false)
-    @Builder.Default
-    private Boolean isEditable = true;
-
-    @Column(name = "is_system", nullable = false)
-    @Builder.Default
-    private Boolean isSystem = false;
-
-    @Column(name = "sort_order", nullable = false)
-    @Builder.Default
-    private Integer sortOrder = 0;
-
-    @Convert(converter = JsonConverter.MapConverter.class)
-    @Column(name = "default_value_json", columnDefinition = "JSON")
-    private Map<String, Object> defaultValueJson;
+    @Embedded
+    private FieldBehavior behavior;
 
     @Convert(converter = JsonConverter.MapConverter.class)
     @Column(name = "validation_json", columnDefinition = "JSON")
-    private Map<String, Object> validationJson;
+    private Map<String, Object> validation;
 
     @Convert(converter = JsonConverter.MapConverter.class)
     @Column(name = "config_json", columnDefinition = "JSON")
-    private Map<String, Object> configJson;
+    private Map<String, Object> config;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "relation_entity_id", foreignKey = @ForeignKey(name = "fk_dp_field_relation_entity"))
+    @JoinColumn(name = "relation_entity_id")
     private DpEntity relationEntity;
 
-    @Column(name = "relation_type", length = 30)
-    private String relationType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "relation_type")
+    private RelationType relationType;
 
-    @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<DpFieldOption> options = new ArrayList<>();
+    public static DpField create(
+            DpEntity entity,
+            String code,
+            String name,
+            FieldDataType dataType
+    ) {
+        DpField f = new DpField();
+        f.entity = entity;
+        f.fieldCode = code;
+        f.fieldName = name;
+        f.dataType = dataType;
+        f.storageType = FieldStorageType.SCALAR;
+        f.behavior = FieldBehavior.defaultBehavior();
+        return f;
+    }
+
+    public void updateBasic(String name, FieldUiType uiType) {
+        this.fieldName = name;
+        this.uiType = uiType;
+    }
+
+    public void attachRelation(DpEntity target, RelationType type) {
+        this.relationEntity = target;
+        this.relationType = type;
+        this.storageType = FieldStorageType.RELATION;
+    }
+
+    public void delete(String deletedBy) {
+        if (isDeleted()) {
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+        }
+        softDelete(deletedBy);
+    }
+
+    @Embeddable
+    @Getter
+    @Setter
+    public static class FieldBehavior {
+
+        private Boolean required;
+        private Boolean unique;
+        private Boolean searchable;
+        private Boolean filterable;
+        private Boolean sortable;
+        private Boolean listable;
+        private Boolean detailVisible;
+        private Boolean editable;
+
+        public static FieldBehavior defaultBehavior() {
+            FieldBehavior b = new FieldBehavior();
+            b.required = false;
+            b.unique = false;
+            b.searchable = false;
+            b.filterable = false;
+            b.sortable = false;
+            b.listable = true;
+            b.detailVisible = true;
+            b.editable = true;
+            return b;
+        }
+    }
 }

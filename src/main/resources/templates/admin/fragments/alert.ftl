@@ -1,0 +1,13 @@
+<#if successMessage??>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        ${successMessage}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+</#if>
+
+<#if errorMessage??>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        ${errorMessage}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+</#if>

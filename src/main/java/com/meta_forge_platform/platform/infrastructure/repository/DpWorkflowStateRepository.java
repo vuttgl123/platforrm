@@ -13,36 +13,19 @@ import java.util.Optional;
 @Repository
 public interface DpWorkflowStateRepository extends BaseRepository<DpWorkflowState, Long> {
 
-    Optional<DpWorkflowState> findByWorkflow_IdAndStateCodeAndIsDeletedFalse(
-            Long workflowId, String stateCode);
+    Optional<DpWorkflowState> findByWorkflow_IdAndStateCodeAndIsDeletedFalse(Long workflowId, String stateCode);
 
-    // ── Tìm trạng thái khởi đầu ───────────────────────────────────────────────
+    Optional<DpWorkflowState> findByWorkflow_IdAndIsInitialTrueAndIsDeletedFalse(Long workflowId);
 
-    Optional<DpWorkflowState> findByWorkflow_IdAndIsInitialTrueAndIsDeletedFalse(
-            Long workflowId);
+    List<DpWorkflowState> findAllByWorkflow_IdAndIsFinalTrueAndIsDeletedFalse(Long workflowId);
 
-    // ── Tìm tất cả trạng thái cuối ───────────────────────────────────────────
+    List<DpWorkflowState> findAllByWorkflow_IdAndIsDeletedFalseOrderBySortOrderAsc(Long workflowId);
 
-    List<DpWorkflowState> findAllByWorkflow_IdAndIsFinalTrueAndIsDeletedFalse(
-            Long workflowId);
-
-    // ── Tìm tất cả state của workflow ─────────────────────────────────────────
-
-    List<DpWorkflowState> findAllByWorkflow_IdAndIsDeletedFalseOrderBySortOrderAsc(
-            Long workflowId);
-
-    // ── Tìm theo loại state ───────────────────────────────────────────────────
-
-    List<DpWorkflowState> findAllByWorkflow_IdAndStateTypeAndIsDeletedFalse(
-            Long workflowId, String stateType);
-
-    // ── Kiểm tra state có đang được dùng bởi record không ────────────────────
+    List<DpWorkflowState> findAllByWorkflow_IdAndStateTypeAndIsDeletedFalse(Long workflowId, String stateType);
 
     @Query("SELECT COUNT(r) > 0 FROM AppRecord r " +
             "WHERE r.currentState.id = :stateId AND r.isDeleted = false")
     boolean isStateInUse(@Param("stateId") Long stateId);
-
-    // ── Xóa toàn bộ state của workflow ───────────────────────────────────────
 
     @Modifying
     @Query("UPDATE DpWorkflowState s SET s.isDeleted = true " +

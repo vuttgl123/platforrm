@@ -13,25 +13,13 @@ import java.util.Optional;
 @Repository
 public interface DpScreenSectionRepository extends BaseRepository<DpScreenSection, Long> {
 
-    Optional<DpScreenSection> findByScreen_IdAndSectionCodeAndIsDeletedFalse(
-            Long screenId, String sectionCode);
+    Optional<DpScreenSection> findByScreen_IdAndSectionCodeAndIsDeletedFalse(Long screenId, String sectionCode);
 
-    // ── Tìm tất cả section theo screen ───────────────────────────────────────
+    List<DpScreenSection> findAllByScreen_IdAndIsDeletedFalseOrderBySortOrderAsc(Long screenId);
 
-    List<DpScreenSection> findAllByScreen_IdAndIsDeletedFalseOrderBySortOrderAsc(
-            Long screenId);
+    List<DpScreenSection> findAllByScreen_IdAndParentSectionIsNullAndIsDeletedFalse(Long screenId);
 
-    // ── Tìm section gốc (không có parent) ────────────────────────────────────
-
-    List<DpScreenSection> findAllByScreen_IdAndParentSectionIsNullAndIsDeletedFalse(
-            Long screenId);
-
-    // ── Tìm section con ───────────────────────────────────────────────────────
-
-    List<DpScreenSection> findAllByParentSection_IdAndIsDeletedFalseOrderBySortOrderAsc(
-            Long parentSectionId);
-
-    // ── Xóa toàn bộ section của screen ───────────────────────────────────────
+    List<DpScreenSection> findAllByParentSection_IdAndIsDeletedFalseOrderBySortOrderAsc(Long parentSectionId);
 
     @Modifying
     @Query("UPDATE DpScreenSection s SET s.isDeleted = true " +

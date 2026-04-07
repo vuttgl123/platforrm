@@ -13,32 +13,17 @@ import java.util.Optional;
 @Repository
 public interface DpWorkflowTransitionRepository extends BaseRepository<DpWorkflowTransition, Long> {
 
-    Optional<DpWorkflowTransition> findByWorkflow_IdAndTransitionCodeAndIsDeletedFalse(
-            Long workflowId, String transitionCode);
+    Optional<DpWorkflowTransition> findByWorkflow_IdAndTransitionCodeAndIsDeletedFalse(Long workflowId, String transitionCode);
 
-    // ── Tìm tất cả transition của workflow ────────────────────────────────────
+    List<DpWorkflowTransition> findAllByWorkflow_IdAndIsDeletedFalseOrderBySortOrderAsc(Long workflowId);
 
-    List<DpWorkflowTransition> findAllByWorkflow_IdAndIsDeletedFalseOrderBySortOrderAsc(
-            Long workflowId);
+    List<DpWorkflowTransition> findAllByWorkflow_IdAndIsActiveTrueAndIsDeletedFalse(Long workflowId);
 
-    List<DpWorkflowTransition> findAllByWorkflow_IdAndIsActiveTrueAndIsDeletedFalse(
-            Long workflowId);
-
-    // ── Tìm transition có thể thực hiện từ một state ─────────────────────────
-
-    List<DpWorkflowTransition> findAllByFromState_IdAndIsActiveTrueAndIsDeletedFalse(
-            Long fromStateId);
-
-    // ── Tìm transition dẫn đến một state ─────────────────────────────────────
+    List<DpWorkflowTransition> findAllByFromState_IdAndIsActiveTrueAndIsDeletedFalse(Long fromStateId);
 
     List<DpWorkflowTransition> findAllByToState_IdAndIsDeletedFalse(Long toStateId);
 
-    // ── Tìm transition theo action code ──────────────────────────────────────
-
-    Optional<DpWorkflowTransition> findByWorkflow_IdAndActionCodeAndIsDeletedFalse(
-            Long workflowId, String actionCode);
-
-    // ── Kiểm tra transition hợp lệ giữa hai state ────────────────────────────
+    Optional<DpWorkflowTransition> findByWorkflow_IdAndActionCodeAndIsDeletedFalse(Long workflowId, String actionCode);
 
     @Query("SELECT COUNT(t) > 0 FROM DpWorkflowTransition t " +
             "WHERE t.workflow.id = :workflowId AND t.isDeleted = false " +
@@ -47,8 +32,6 @@ public interface DpWorkflowTransitionRepository extends BaseRepository<DpWorkflo
     boolean isTransitionValid(@Param("workflowId") Long workflowId,
                               @Param("fromStateId") Long fromStateId,
                               @Param("toStateId") Long toStateId);
-
-    // ── Xóa toàn bộ transition của workflow ──────────────────────────────────
 
     @Modifying
     @Query("UPDATE DpWorkflowTransition t SET t.isDeleted = true " +

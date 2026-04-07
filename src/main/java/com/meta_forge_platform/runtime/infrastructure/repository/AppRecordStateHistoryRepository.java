@@ -15,30 +15,15 @@ import java.util.Optional;
 @Repository
 public interface AppRecordStateHistoryRepository extends BaseRepository<AppRecordStateHistory, Long> {
 
-    // ── Lấy toàn bộ lịch sử của record ───────────────────────────────────────
+    List<AppRecordStateHistory> findAllByRecord_IdAndIsDeletedFalseOrderByChangedAtDesc(Long recordId);
 
-    List<AppRecordStateHistory> findAllByRecord_IdAndIsDeletedFalseOrderByChangedAtDesc(
-            Long recordId);
+    Page<AppRecordStateHistory> findAllByRecord_IdAndIsDeletedFalse(Long recordId, Pageable pageable);
 
-    Page<AppRecordStateHistory> findAllByRecord_IdAndIsDeletedFalse(
-            Long recordId, Pageable pageable);
+    Optional<AppRecordStateHistory> findFirstByRecord_IdAndIsDeletedFalseOrderByChangedAtDesc(Long recordId);
 
-    // ── Lấy trạng thái hiện tại (mới nhất) ───────────────────────────────────
+    List<AppRecordStateHistory> findAllByRecord_IdAndWorkflow_IdAndIsDeletedFalse(Long recordId, Long workflowId);
 
-    Optional<AppRecordStateHistory> findFirstByRecord_IdAndIsDeletedFalseOrderByChangedAtDesc(
-            Long recordId);
-
-    // ── Lấy lịch sử theo workflow ─────────────────────────────────────────────
-
-    List<AppRecordStateHistory> findAllByRecord_IdAndWorkflow_IdAndIsDeletedFalse(
-            Long recordId, Long workflowId);
-
-    // ── Lấy lịch sử theo action ───────────────────────────────────────────────
-
-    List<AppRecordStateHistory> findAllByRecord_IdAndActionCodeAndIsDeletedFalse(
-            Long recordId, String actionCode);
-
-    // ── Thống kê: số lần chuyển state trong khoảng thời gian ─────────────────
+    List<AppRecordStateHistory> findAllByRecord_IdAndActionCodeAndIsDeletedFalse(Long recordId, String actionCode);
 
     @Query("SELECT COUNT(h) FROM AppRecordStateHistory h " +
             "WHERE h.record.entity.id = :entityId AND h.isDeleted = false " +
@@ -48,8 +33,6 @@ public interface AppRecordStateHistoryRepository extends BaseRepository<AppRecor
                                  @Param("stateId") Long stateId,
                                  @Param("from") LocalDateTime from,
                                  @Param("to") LocalDateTime to);
-
-    // ── Kiểm tra xem record đã từng qua state nào chưa ───────────────────────
 
     @Query("SELECT COUNT(h) > 0 FROM AppRecordStateHistory h " +
             "WHERE h.record.id = :recordId AND h.toState.id = :stateId " +

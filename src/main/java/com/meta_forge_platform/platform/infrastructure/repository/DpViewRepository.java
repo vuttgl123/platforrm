@@ -13,36 +13,23 @@ import java.util.Optional;
 @Repository
 public interface DpViewRepository extends BaseRepository<DpView, Long> {
 
-    Optional<DpView> findByEntity_IdAndViewCodeAndIsDeletedFalse(
-            Long entityId, String viewCode);
+    Optional<DpView> findByEntity_IdAndViewCodeAndIsDeletedFalse(Long entityId, String viewCode);
 
-    boolean existsByEntity_IdAndViewCodeAndIsDeletedFalse(
-            Long entityId, String viewCode);
-
-    // ── Tìm view mặc định ────────────────────────────────────────────────────
+    boolean existsByEntity_IdAndViewCodeAndIsDeletedFalse(Long entityId, String viewCode);
 
     Optional<DpView> findByEntity_IdAndIsDefaultTrueAndIsDeletedFalse(Long entityId);
-
-    // ── Tìm tất cả view của entity ────────────────────────────────────────────
 
     List<DpView> findAllByEntity_IdAndIsDeletedFalse(Long entityId);
 
     List<DpView> findAllByEntity_IdAndIsActiveTrueAndIsDeletedFalse(Long entityId);
 
-    // ── Tìm theo loại view ────────────────────────────────────────────────────
-
-    List<DpView> findAllByEntity_IdAndViewTypeAndIsDeletedFalse(
-            Long entityId, String viewType);
-
-    // ── Reset default ─────────────────────────────────────────────────────────
+    List<DpView> findAllByEntity_IdAndViewTypeAndIsDeletedFalse(Long entityId, String viewType);
 
     @Modifying
     @Query("UPDATE DpView v SET v.isDefault = false " +
             "WHERE v.entity.id = :entityId AND v.id <> :excludeId AND v.isDeleted = false")
     int unsetDefaultExcept(@Param("entityId") Long entityId,
                            @Param("excludeId") Long excludeId);
-
-    // ── Xóa toàn bộ view của entity ──────────────────────────────────────────
 
     @Modifying
     @Query("UPDATE DpView v SET v.isDeleted = true WHERE v.entity.id = :entityId")

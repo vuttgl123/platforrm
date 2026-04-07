@@ -12,33 +12,19 @@ import java.util.Optional;
 @Repository
 public interface DpScreenRepository extends BaseRepository<DpScreen, Long> {
 
-    Optional<DpScreen> findByModule_IdAndScreenCodeAndIsDeletedFalse(
-            Long moduleId, String screenCode);
+    Optional<DpScreen> findByModule_IdAndScreenCodeAndIsDeletedFalse(Long moduleId, String screenCode);
 
-    boolean existsByModule_IdAndScreenCodeAndIsDeletedFalse(
-            Long moduleId, String screenCode);
-
-    // ── Tìm theo module ───────────────────────────────────────────────────────
+    boolean existsByModule_IdAndScreenCodeAndIsDeletedFalse(Long moduleId, String screenCode);
 
     List<DpScreen> findAllByModule_IdAndIsDeletedFalseOrderBySortOrderAsc(Long moduleId);
 
-    List<DpScreen> findAllByModule_IdAndIsActiveTrueAndIsDeletedFalseOrderBySortOrderAsc(
-            Long moduleId);
-
-    // ── Tìm theo entity ───────────────────────────────────────────────────────
+    List<DpScreen> findAllByModule_IdAndIsActiveTrueAndIsDeletedFalseOrderBySortOrderAsc(Long moduleId);
 
     List<DpScreen> findAllByEntity_IdAndIsDeletedFalse(Long entityId);
 
-    // ── Tìm theo screen type ──────────────────────────────────────────────────
-
-    List<DpScreen> findAllByModule_IdAndScreenTypeAndIsDeletedFalse(
-            Long moduleId, String screenType);
-
-    // ── Tìm theo route path ───────────────────────────────────────────────────
+    List<DpScreen> findAllByModule_IdAndScreenTypeAndIsDeletedFalse(Long moduleId, String screenType);
 
     Optional<DpScreen> findByRoutePathAndIsDeletedFalse(String routePath);
-
-    // ── Search ────────────────────────────────────────────────────────────────
 
     @Query("SELECT s FROM DpScreen s WHERE s.module.id = :moduleId " +
             "AND s.isDeleted = false AND (" +

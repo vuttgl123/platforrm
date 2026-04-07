@@ -13,11 +13,9 @@ import java.util.Optional;
 @Repository
 public interface DpFieldRepository extends BaseRepository<DpField, Long> {
 
-    Optional<DpField> findByEntity_IdAndFieldCodeAndIsDeletedFalse(
-            Long entityId, String fieldCode);
+    Optional<DpField> findByEntity_IdAndFieldCodeAndIsDeletedFalse(Long entityId, String fieldCode);
 
-    boolean existsByEntity_IdAndFieldCodeAndIsDeletedFalse(
-            Long entityId, String fieldCode);
+    boolean existsByEntity_IdAndFieldCodeAndIsDeletedFalse(Long entityId, String fieldCode);
 
     @Query("SELECT COUNT(f) > 0 FROM DpField f WHERE f.entity.id = :entityId " +
             "AND f.fieldCode = :code AND f.id <> :excludeId AND f.isDeleted = false")
@@ -25,42 +23,27 @@ public interface DpFieldRepository extends BaseRepository<DpField, Long> {
                                            @Param("code") String code,
                                            @Param("excludeId") Long excludeId);
 
-    // ── Tìm theo entity ───────────────────────────────────────────────────────
-
     List<DpField> findAllByEntity_IdAndIsDeletedFalseOrderBySortOrderAsc(Long entityId);
 
-    List<DpField> findAllByEntity_IdAndFieldGroup_IdAndIsDeletedFalse(
-            Long entityId, Long groupId);
-
-    // ── Tìm theo thuộc tính ───────────────────────────────────────────────────
+    List<DpField> findAllByEntity_IdAndFieldGroup_IdAndIsDeletedFalse(Long entityId, Long groupId);
 
     List<DpField> findAllByEntity_IdAndIsSearchableTrueAndIsDeletedFalse(Long entityId);
 
     List<DpField> findAllByEntity_IdAndIsFilterableTrueAndIsDeletedFalse(Long entityId);
 
-    List<DpField> findAllByEntity_IdAndIsListableTrueAndIsDeletedFalseOrderBySortOrderAsc(
-            Long entityId);
+    List<DpField> findAllByEntity_IdAndIsListableTrueAndIsDeletedFalseOrderBySortOrderAsc(Long entityId);
 
     List<DpField> findAllByEntity_IdAndIsRequiredTrueAndIsDeletedFalse(Long entityId);
 
     List<DpField> findAllByEntity_IdAndIsSystemTrueAndIsDeletedFalse(Long entityId);
 
-    // ── Tìm field tham chiếu đến entity khác ─────────────────────────────────
-
     List<DpField> findAllByRelationEntity_IdAndIsDeletedFalse(Long relationEntityId);
 
-    // ── Tìm theo data type ────────────────────────────────────────────────────
-
-    List<DpField> findAllByEntity_IdAndDataTypeAndIsDeletedFalse(
-            Long entityId, String dataType);
-
-    // ── Xóa toàn bộ field của entity ─────────────────────────────────────────
+    List<DpField> findAllByEntity_IdAndDataTypeAndIsDeletedFalse(Long entityId, String dataType);
 
     @Modifying
     @Query("UPDATE DpField f SET f.isDeleted = true WHERE f.entity.id = :entityId")
     int softDeleteByEntityId(@Param("entityId") Long entityId);
-
-    // ── Count ─────────────────────────────────────────────────────────────────
 
     long countByEntity_IdAndIsDeletedFalse(Long entityId);
 }

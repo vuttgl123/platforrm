@@ -1,30 +1,30 @@
 package com.meta_forge_platform.platform.domain.entity;
 
+import com.meta_forge_platform.platform.domain.enumeration.WorkflowStateType;
 import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
+import com.meta_forge_platform.shared.domain.exception.AppException;
+import com.meta_forge_platform.shared.domain.exception.ErrorCode;
 import com.meta_forge_platform.shared.infrastructure.converter.JsonConverter;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.SQLDelete;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
-@Table(name = "dp_workflow_state",
+@Table(
+        name = "dp_workflow_state",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_dp_workflow_state_code",
-                columnNames = {"workflow_id", "state_code"}))
-@SQLDelete(sql = "UPDATE dp_workflow_state SET is_deleted = true, deleted_at = NOW() WHERE id = ?")
+                columnNames = {"workflow_id", "state_code"}
+        )
+)
 public class DpWorkflowState extends SoftDeletableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "workflow_id", nullable = false, foreignKey = @ForeignKey(name = "fk_dp_workflow_state_workflow"))
+    @JoinColumn(name = "workflow_id", nullable = false)
     private DpWorkflow workflow;
 
     @Column(name = "state_code", nullable = false, length = 100)
@@ -33,34 +33,73 @@ public class DpWorkflowState extends SoftDeletableEntity {
     @Column(name = "state_name", nullable = false, length = 255)
     private String stateName;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "state_type", nullable = false, length = 30)
-    @Builder.Default
-    private String stateType = "NORMAL";
+    private WorkflowStateType stateType;
 
     @Column(name = "is_initial", nullable = false)
-    @Builder.Default
-    private Boolean isInitial = false;
+    private Boolean isInitial;
 
     @Column(name = "is_final", nullable = false)
-    @Builder.Default
-    private Boolean isFinal = false;
+    private Boolean isFinal;
 
     @Column(name = "color_code", length = 30)
     private String colorCode;
 
     @Column(name = "sort_order", nullable = false)
-    @Builder.Default
-    private Integer sortOrder = 0;
+    private Integer sortOrder;
 
     @Convert(converter = JsonConverter.MapConverter.class)
     @Column(name = "config_json", columnDefinition = "JSON")
-    private Map<String, Object> configJson;
+    private Map<String, Object> config;
 
-    @OneToMany(mappedBy = "fromState")
-    @Builder.Default
-    private List<DpWorkflowTransition> outgoingTransitions = new ArrayList<>();
+    public static DpWorkflowState create(
+            DpWorkflow workflow,
+            String code,
+            String name
+    ) {
+        DpWorkflowState state = new DpWorkflowState();
+        state.workflow = workflow;
+        state.stateCode = code;
+        state.stateName = name;
+        state.stateType = WorkflowStateType.NORMAL;
+        state.isInitial = false;
+        state.isFinal = false;
+        state.sortOrder = 0;
+        return state;
+    }
 
-    @OneToMany(mappedBy = "toState")
-    @Builder.Default
-    private List<DpWorkflowTransition> incomingTransitions = new ArrayList<>();
+    public void updateInfo(String name, WorkflowStateType stateType, String colorCode, Integer sortOrder) {
+        this.stateName = name;
+        this.stateType = stateType;
+        this.colorCode = colorCode;
+        this.sortOrder = sortOrder;
+    }
+
+    public void markInitial() {
+        this.isInitial = true;
+    }
+
+    public void unmarkInitial() {
+        this.isInitial = false;
+    }
+
+    public void markFinal() {
+        this.isFinal = true;
+    }
+
+    public void unmarkFinal() {
+        this.isFinal = false;
+    }
+
+    public void updateConfig(Map<String, Object> config) {
+        this.config = config;
+    }
+
+    public void delete(String deletedBy) {
+        if (isDeleted()) {
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+        }
+        softDelete(deletedBy);
+    }
 }

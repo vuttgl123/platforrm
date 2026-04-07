@@ -12,48 +12,46 @@ import java.util.Optional;
 @Repository
 public interface DpEntityRepository extends BaseRepository<DpEntity, Long> {
 
-    // ── Tìm theo module + code ────────────────────────────────────────────────
+    Optional<DpEntity> findByModule_IdAndEntityCodeAndIsDeletedFalse(Long moduleId, String entityCode);
 
-    Optional<DpEntity> findByModule_IdAndEntityCodeAndIsDeletedFalse(
-            Long moduleId, String entityCode);
+    boolean existsByModule_IdAndEntityCodeAndIsDeletedFalse(Long moduleId, String entityCode);
 
-    boolean existsByModule_IdAndEntityCodeAndIsDeletedFalse(
-            Long moduleId, String entityCode);
-
-    @Query("SELECT COUNT(e) > 0 FROM DpEntity e WHERE e.module.id = :moduleId " +
-            "AND e.entityCode = :code AND e.id <> :excludeId AND e.isDeleted = false")
+    @Query("""
+        SELECT CASE WHEN COUNT(e) > 0 THEN true ELSE false END
+          FROM DpEntity e
+         WHERE e.module.id = :moduleId
+           AND e.entityCode = :entityCode
+           AND e.id <> :excludeId
+           AND e.isDeleted = false
+    """)
     boolean existsByModuleAndCodeExcludeId(@Param("moduleId") Long moduleId,
-                                           @Param("code") String code,
+                                           @Param("entityCode") String entityCode,
                                            @Param("excludeId") Long excludeId);
-
-    // ── Tìm theo module ───────────────────────────────────────────────────────
 
     List<DpEntity> findAllByModule_IdAndIsDeletedFalseOrderByEntityNameAsc(Long moduleId);
 
-    List<DpEntity> findAllByModule_IdAndIsActiveTrueAndIsDeletedFalse(Long moduleId);
+    List<DpEntity> findAllByModule_IdAndIsRootTrueAndIsDeletedFalseOrderByEntityNameAsc(Long moduleId);
 
-    // ── Tìm root entity ───────────────────────────────────────────────────────
+    @Query("""
+        SELECT e
+          FROM DpEntity e
+         WHERE e.isDeleted = false
+         ORDER BY e.entityName ASC
+    """)
+    List<DpEntity> findAllActiveEntities();
 
-    List<DpEntity> findAllByIsRootTrueAndIsDeletedFalse();
-
-    List<DpEntity> findAllByModule_IdAndIsRootTrueAndIsDeletedFalse(Long moduleId);
-
-    // ── Tìm theo table strategy ───────────────────────────────────────────────
-
-    List<DpEntity> findAllByTableStrategyAndIsDeletedFalse(String tableStrategy);
-
-    // ── Search keyword trong module ───────────────────────────────────────────
-
-    @Query("SELECT e FROM DpEntity e WHERE e.module.id = :moduleId " +
-            "AND e.isDeleted = false AND (" +
-            "LOWER(e.entityCode) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
-            "LOWER(e.entityName) LIKE LOWER(CONCAT('%', :kw, '%')))")
+    @Query("""
+        SELECT e
+          FROM DpEntity e
+         WHERE e.module.id = :moduleId
+           AND e.isDeleted = false
+           AND (
+                LOWER(e.entityCode) LIKE LOWER(CONCAT('%', :keyword, '%'))
+             OR LOWER(e.entityName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+             OR LOWER(COALESCE(e.description, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+           )
+         ORDER BY e.entityName ASC
+    """)
     List<DpEntity> searchByKeywordInModule(@Param("moduleId") Long moduleId,
-                                           @Param("kw") String keyword);
-
-    // ── Count entity theo module ──────────────────────────────────────────────
-
-    @Query("SELECT COUNT(e) FROM DpEntity e " +
-            "WHERE e.module.id = :moduleId AND e.isDeleted = false")
-    long countByModuleId(@Param("moduleId") Long moduleId);
+                                           @Param("keyword") String keyword);
 }

@@ -1,30 +1,30 @@
 package com.meta_forge_platform.platform.domain.entity;
 
+import com.meta_forge_platform.platform.domain.enumeration.ScreenSectionType;
 import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
+import com.meta_forge_platform.shared.domain.exception.AppException;
+import com.meta_forge_platform.shared.domain.exception.ErrorCode;
 import com.meta_forge_platform.shared.infrastructure.converter.JsonConverter;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.SQLDelete;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
-@Table(name = "dp_screen_section",
+@Table(
+        name = "dp_screen_section",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_dp_screen_section_code",
-                columnNames = {"screen_id", "section_code"}))
-@SQLDelete(sql = "UPDATE dp_screen_section SET is_deleted = true, deleted_at = NOW() WHERE id = ?")
+                columnNames = {"screen_id", "section_code"}
+        )
+)
 public class DpScreenSection extends SoftDeletableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "screen_id", nullable = false, foreignKey = @ForeignKey(name = "fk_dp_screen_section_screen"))
+    @JoinColumn(name = "screen_id", nullable = false)
     private DpScreen screen;
 
     @Column(name = "section_code", nullable = false, length = 100)
@@ -33,26 +33,49 @@ public class DpScreenSection extends SoftDeletableEntity {
     @Column(name = "section_name", nullable = false, length = 255)
     private String sectionName;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "section_type", nullable = false, length = 50)
-    private String sectionType;
+    private ScreenSectionType sectionType;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_section_id", foreignKey = @ForeignKey(name = "fk_dp_screen_section_parent"))
-    private DpScreenSection parentSection;
+    @Column(name = "parent_section_id")
+    private Long parentSectionId;
 
     @Column(name = "sort_order", nullable = false)
-    @Builder.Default
-    private Integer sortOrder = 0;
+    private Integer sortOrder;
 
     @Convert(converter = JsonConverter.MapConverter.class)
     @Column(name = "config_json", columnDefinition = "JSON")
-    private Map<String, Object> configJson;
+    private Map<String, Object> config;
 
-    @OneToMany(mappedBy = "parentSection", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<DpScreenSection> childSections = new ArrayList<>();
+    public static DpScreenSection create(
+            DpScreen screen,
+            String code,
+            String name,
+            ScreenSectionType type
+    ) {
+        DpScreenSection section = new DpScreenSection();
+        section.screen = screen;
+        section.sectionCode = code;
+        section.sectionName = name;
+        section.sectionType = type;
+        section.sortOrder = 0;
+        return section;
+    }
 
-    @OneToMany(mappedBy = "section", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<DpScreenField> screenFields = new ArrayList<>();
+    public void assignParent(Long parentSectionId) {
+        this.parentSectionId = parentSectionId;
+    }
+
+    public void updateBasic(String name, ScreenSectionType type, Integer sortOrder) {
+        this.sectionName = name;
+        this.sectionType = type;
+        this.sortOrder = sortOrder;
+    }
+
+    public void delete(String deletedBy) {
+        if (isDeleted()) {
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+        }
+        softDelete(deletedBy);
+    }
 }

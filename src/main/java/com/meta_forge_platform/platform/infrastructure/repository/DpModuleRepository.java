@@ -12,32 +12,20 @@ import java.util.Optional;
 @Repository
 public interface DpModuleRepository extends BaseRepository<DpModule, Long> {
 
-    // ── Tìm theo code ─────────────────────────────────────────────────────────
-
     Optional<DpModule> findByModuleCodeAndIsDeletedFalse(String moduleCode);
 
     boolean existsByModuleCodeAndIsDeletedFalse(String moduleCode);
-
-    // ── Kiểm tra trùng khi update ─────────────────────────────────────────────
 
     @Query("SELECT COUNT(m) > 0 FROM DpModule m " +
             "WHERE m.moduleCode = :code AND m.id <> :excludeId AND m.isDeleted = false")
     boolean existsByModuleCodeExcludeId(@Param("code") String code,
                                         @Param("excludeId") Long excludeId);
 
-    // ── Tìm theo status ───────────────────────────────────────────────────────
-
     List<DpModule> findAllByStatusAndIsDeletedFalseOrderBySortOrderAsc(String status);
-
-    // ── Tìm tất cả active, sắp xếp ───────────────────────────────────────────
 
     List<DpModule> findAllByIsDeletedFalseOrderBySortOrderAsc();
 
-    // ── Tìm module system ─────────────────────────────────────────────────────
-
     List<DpModule> findAllByIsSystemTrueAndIsDeletedFalse();
-
-    // ── Search keyword ────────────────────────────────────────────────────────
 
     @Query("SELECT m FROM DpModule m WHERE m.isDeleted = false AND " +
             "(LOWER(m.moduleCode) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
