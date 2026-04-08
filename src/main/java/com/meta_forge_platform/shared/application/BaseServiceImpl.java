@@ -1,6 +1,5 @@
 package com.meta_forge_platform.shared.application;
 
-import com.meta_forge_platform.shared.domain.base.BaseEntity;
 import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
 import com.meta_forge_platform.shared.domain.exception.AppException;
 import com.meta_forge_platform.shared.domain.exception.ErrorCode;
@@ -21,7 +20,7 @@ import java.util.Optional;
 @Slf4j
 @Transactional(readOnly = true)
 public abstract class BaseServiceImpl<E extends SoftDeletableEntity, T, C, U, ID>
-        implements BaseService<T, C, U, ID>, RestorableService<T, ID> {
+        implements CrudService<T, C, U, ID> {
 
     protected final BaseRepository<E, ID> repository;
 

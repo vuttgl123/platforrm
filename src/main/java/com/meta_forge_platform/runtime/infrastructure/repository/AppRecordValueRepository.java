@@ -19,8 +19,6 @@ public interface AppRecordValueRepository extends BaseRepository<AppRecordValue,
 
     List<AppRecordValue> findAllByRecord_IdAndIsDeletedFalse(Long recordId);
 
-    List<AppRecordValue> findAllByEntity_IdAndField_IdAndIsDeletedFalse(Long entityId, Long fieldId);
-
     @Query("SELECT v.record FROM AppRecordValue v WHERE v.field.id = :fieldId " +
             "AND v.valueString = :value AND v.isDeleted = false " +
             "AND v.record.isDeleted = false")

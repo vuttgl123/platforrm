@@ -1,12 +1,15 @@
 package com.meta_forge_platform.runtime.application.service;
 
 import com.meta_forge_platform.runtime.application.dto.recordblob.*;
-import com.meta_forge_platform.shared.application.BaseService;
+import com.meta_forge_platform.shared.application.CrudService;
 
 import java.util.List;
 
-public interface AppRecordBlobService
-        extends BaseService<AppRecordBlobDto, CreateAppRecordBlobCmd, UpdateAppRecordBlobCmd, Long> {
+public interface AppRecordBlobService extends CrudService<
+        AppRecordBlobDto,
+        CreateAppRecordBlobCmd,
+        UpdateAppRecordBlobCmd,
+        Long> {
 
     List<AppRecordBlobSummaryDto> findAllByRecord(Long recordId);
 

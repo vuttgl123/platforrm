@@ -99,10 +99,6 @@ public class DpField extends SoftDeletableEntity {
     @Column(name = "relation_type", length = 30)
     private RelationType relationType;
 
-    @Version
-    @Column(name = "version_no", nullable = false)
-    private Long versionNo;
-
     public static DpField create(
             DpEntity entity,
             String code,

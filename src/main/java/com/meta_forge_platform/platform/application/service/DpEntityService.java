@@ -4,14 +4,15 @@ import com.meta_forge_platform.platform.application.dto.entity.CreateDpEntityCmd
 import com.meta_forge_platform.platform.application.dto.entity.DpEntityDto;
 import com.meta_forge_platform.platform.application.dto.entity.DpEntitySummaryDto;
 import com.meta_forge_platform.platform.application.dto.entity.UpdateDpEntityCmd;
-import com.meta_forge_platform.shared.application.BaseService;
-import com.meta_forge_platform.shared.application.RestorableService;
+import com.meta_forge_platform.shared.application.CrudService;
 
 import java.util.List;
 
-public interface DpEntityService extends
-        BaseService<DpEntityDto, CreateDpEntityCmd, UpdateDpEntityCmd, Long>,
-        RestorableService<DpEntityDto, Long> {
+public interface DpEntityService extends CrudService<
+        DpEntityDto,
+        CreateDpEntityCmd,
+        UpdateDpEntityCmd,
+        Long> {
 
     DpEntityDto getByCode(Long moduleId, String entityCode);
 

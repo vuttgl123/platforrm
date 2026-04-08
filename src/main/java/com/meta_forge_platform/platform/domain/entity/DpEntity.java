@@ -46,10 +46,6 @@ public class DpEntity extends SoftDeletableEntity {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
-    @Version
-    @Column(name = "version_no", nullable = false)
-    private Long versionNo;
-
     @Column(name = "display_name_pattern", length = 500)
     private String displayNamePattern;
 

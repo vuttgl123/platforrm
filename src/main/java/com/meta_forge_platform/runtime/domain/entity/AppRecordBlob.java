@@ -35,10 +35,6 @@ public class AppRecordBlob extends SoftDeletableEntity {
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder;
 
-    @Version
-    @Column(name = "version_no", nullable = false)
-    private Long versionNo;
-
     public static AppRecordBlob create(AppRecord record, DpField field, AppBlob blob) {
         AppRecordBlob binding = new AppRecordBlob();
         binding.record = record;

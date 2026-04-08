@@ -52,5 +52,4 @@ public interface AppRecordLinkRepository extends BaseRepository<AppRecordLink, L
 
     long countBySourceRecord_IdAndField_IdAndIsDeletedFalse(Long sourceRecordId, Long fieldId);
 
-    List<AppRecordLink> findAllByBlob_IdAndIsDeletedFalse(Long blobId);
 }

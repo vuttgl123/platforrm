@@ -7,5 +7,6 @@ public enum FieldDataType {
     DATE,
     DATETIME,
     JSON,
-    REFERENCE
+    REFERENCE,
+    DECIMAL
 }

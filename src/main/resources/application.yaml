@@ -13,7 +13,7 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://10.210.40.40:3306/rbac_data?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&cachePrepStmts=true&prepStmtCacheSize=250&prepStmtCacheSqlLimit=2048&useServerPrepStmts=true&cacheResultSetMetadata=true&maintainTimeStats=false
+    url: jdbc:mysql://10.210.40.40:3306/dynamic_platform?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&cachePrepStmts=true&prepStmtCacheSize=250&prepStmtCacheSqlLimit=2048&useServerPrepStmts=true&cacheResultSetMetadata=true&maintainTimeStats=false
     username: ${DB_USER:kyc_uat}
     password: ${DB_PASS:ILoveKYC}
 

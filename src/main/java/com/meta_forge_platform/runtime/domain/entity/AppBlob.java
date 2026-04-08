@@ -49,10 +49,6 @@ public class AppBlob extends SoftDeletableEntity {
     @Column(name = "metadata_json", columnDefinition = "JSON")
     private Map<String, Object> metadata;
 
-    @Version
-    @Column(name = "version_no", nullable = false)
-    private Long versionNo;
-
     public static AppBlob create(
             String blobCode,
             String fileName,

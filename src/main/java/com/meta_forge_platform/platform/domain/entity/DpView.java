@@ -60,10 +60,6 @@ public class DpView extends SoftDeletableEntity {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
-    @Version
-    @Column(name = "version_no", nullable = false)
-    private Long versionNo;
-
     public static DpView create(
             DpEntity entity,
             String code,

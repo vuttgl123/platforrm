@@ -51,10 +51,6 @@ public class AppRecord extends SoftDeletableEntity {
     @Column(name = "status", nullable = false, length = 30)
     private RecordStatus status;
 
-    @Version
-    @Column(name = "version_no", nullable = false)
-    private Long versionNo;
-
     @Convert(converter = JsonConverter.MapConverter.class)
     @Column(name = "data_json", columnDefinition = "JSON")
     private Map<String, Object> data;

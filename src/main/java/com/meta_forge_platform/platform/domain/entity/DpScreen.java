@@ -55,10 +55,6 @@ public class DpScreen extends SoftDeletableEntity {
     @Column(name = "config_json", columnDefinition = "JSON")
     private Map<String, Object> config;
 
-    @Version
-    @Column(name = "version_no", nullable = false)
-    private Long versionNo;
-
     public static DpScreen create(
             DpModule module,
             DpEntity entity,

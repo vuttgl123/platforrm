@@ -19,6 +19,10 @@ public class ApiResponseFactory {
         return build(ErrorCode.SUCCESS, data, meta);
     }
 
+    public ApiResponse<Void> success() {
+        return build(ErrorCode.SUCCESS, null, null);
+    }
+
     // ── Error (không có args) ─────────────────────────────────────────────
     // Dùng cho: BAD_REQUEST, UNAUTHORIZED, FORBIDDEN, NOT_FOUND,
     //           INTERNAL_ERROR, VALIDATION_ERROR, OPTIMISTIC_LOCK,

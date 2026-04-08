@@ -34,10 +34,6 @@ public class DpModule extends SoftDeletableEntity {
     @Column(name = "is_system", nullable = false)
     private Boolean isSystem;
 
-    @Version
-    @Column(name = "version_no", nullable = false)
-    private Long versionNo;
-
     public static DpModule create(String code, String name) {
         DpModule m = new DpModule();
         m.moduleCode = code;

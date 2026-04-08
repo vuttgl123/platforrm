@@ -57,10 +57,6 @@ public class DpWorkflowTransition extends SoftDeletableEntity {
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder;
 
-    @Version
-    @Column(name = "version_no", nullable = false)
-    private Long versionNo;
-
     public static DpWorkflowTransition create(
             DpWorkflow workflow,
             String code,
