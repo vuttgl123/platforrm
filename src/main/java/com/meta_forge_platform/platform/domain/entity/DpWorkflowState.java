@@ -53,6 +53,10 @@ public class DpWorkflowState extends SoftDeletableEntity {
     @Column(name = "config_json", columnDefinition = "JSON")
     private Map<String, Object> config;
 
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
+
     public static DpWorkflowState create(
             DpWorkflow workflow,
             String code,
@@ -69,36 +73,27 @@ public class DpWorkflowState extends SoftDeletableEntity {
         return state;
     }
 
-    public void updateInfo(String name, WorkflowStateType stateType, String colorCode, Integer sortOrder) {
-        this.stateName = name;
+    public void applyMetadata(
+            String stateName,
+            WorkflowStateType stateType,
+            Boolean isInitial,
+            Boolean isFinal,
+            String colorCode,
+            Integer sortOrder,
+            Map<String, Object> config
+    ) {
+        this.stateName = stateName;
         this.stateType = stateType;
+        this.isInitial = isInitial;
+        this.isFinal = isFinal;
         this.colorCode = colorCode;
         this.sortOrder = sortOrder;
-    }
-
-    public void markInitial() {
-        this.isInitial = true;
-    }
-
-    public void unmarkInitial() {
-        this.isInitial = false;
-    }
-
-    public void markFinal() {
-        this.isFinal = true;
-    }
-
-    public void unmarkFinal() {
-        this.isFinal = false;
-    }
-
-    public void updateConfig(Map<String, Object> config) {
         this.config = config;
     }
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "DpWorkflowState", getId());
         }
         softDelete(deletedBy);
     }

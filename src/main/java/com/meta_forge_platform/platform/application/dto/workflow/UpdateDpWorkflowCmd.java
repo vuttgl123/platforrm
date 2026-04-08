@@ -2,14 +2,29 @@ package com.meta_forge_platform.platform.application.dto.workflow;
 
 import jakarta.validation.constraints.*;
 import lombok.*;
+
 import java.util.Map;
 
-@Data @NoArgsConstructor @AllArgsConstructor @Builder
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class UpdateDpWorkflowCmd {
-    @NotBlank @Size(max = 255) private String workflowName;
+
+    @NotBlank
+    @Size(max = 255)
+    private String workflowName;
+
     private String description;
+
+    @NotNull
     private Boolean isDefault;
+
+    @NotNull
     private Boolean isActive;
+
     private Map<String, Object> configJson;
-    @NotNull private Long versionNo;
+
+    @NotNull
+    private Long versionNo;
 }

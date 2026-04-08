@@ -26,19 +26,19 @@ public interface DpMenuMapper extends BaseMapper<
     @Override
     @Mapping(target = "module", source = "module")
     @Mapping(target = "screen", source = "screen")
-    @Mapping(target = "parentMenuId", source = "parentId")
+    @Mapping(target = "parentMenuId", source = "parentMenu.id")
     DpMenuDto toDto(DpMenu entity);
 
     @Override
     @Mapping(target = "moduleId", source = "module.id")
-    @Mapping(target = "parentMenuId", source = "parentId")
+    @Mapping(target = "parentMenuId", source = "parentMenu.id")
     @Mapping(target = "screenId", source = "screen.id")
     DpMenuSummaryDto toSummaryDto(DpMenu entity);
 
     @Override
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "module", ignore = true)
-    @Mapping(target = "parentId", ignore = true)
+    @Mapping(target = "parentMenu", ignore = true)
     @Mapping(target = "screen", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -55,7 +55,7 @@ public interface DpMenuMapper extends BaseMapper<
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "menuCode", ignore = true)
     @Mapping(target = "module", ignore = true)
-    @Mapping(target = "parentId", ignore = true)
+    @Mapping(target = "parentMenu", ignore = true)
     @Mapping(target = "screen", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

@@ -23,17 +23,27 @@ public interface DpScreenFieldRepository extends BaseRepository<DpScreenField, L
 
     List<DpScreenField> findAllByScreen_IdAndIsHiddenFalseAndIsDeletedFalseOrderBySortOrderAsc(Long screenId);
 
+    boolean existsByScreen_IdAndField_IdAndSection_IdAndIsDeletedFalse(Long screenId, Long fieldId, Long sectionId);
+
     boolean existsByScreen_IdAndField_IdAndIsDeletedFalse(Long screenId, Long fieldId);
 
     List<DpScreenField> findAllByField_IdAndIsDeletedFalse(Long fieldId);
 
     @Modifying
-    @Query("UPDATE DpScreenField sf SET sf.isDeleted = true " +
-            "WHERE sf.screen.id = :screenId")
+    @Query("""
+        UPDATE DpScreenField sf
+           SET sf.isDeleted = true
+         WHERE sf.screen.id = :screenId
+           AND sf.isDeleted = false
+    """)
     int softDeleteByScreenId(@Param("screenId") Long screenId);
 
     @Modifying
-    @Query("UPDATE DpScreenField sf SET sf.isDeleted = true " +
-            "WHERE sf.section.id = :sectionId")
+    @Query("""
+        UPDATE DpScreenField sf
+           SET sf.isDeleted = true
+         WHERE sf.section.id = :sectionId
+           AND sf.isDeleted = false
+    """)
     int softDeleteBySectionId(@Param("sectionId") Long sectionId);
 }

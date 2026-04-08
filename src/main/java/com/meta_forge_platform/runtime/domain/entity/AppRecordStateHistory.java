@@ -3,7 +3,7 @@ package com.meta_forge_platform.runtime.domain.entity;
 import com.meta_forge_platform.platform.domain.entity.DpWorkflow;
 import com.meta_forge_platform.platform.domain.entity.DpWorkflowState;
 import com.meta_forge_platform.platform.domain.entity.DpWorkflowTransition;
-import com.meta_forge_platform.shared.domain.base.BaseAuditEntity;
+import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
 import com.meta_forge_platform.shared.domain.exception.AppException;
 import com.meta_forge_platform.shared.domain.exception.ErrorCode;
 import jakarta.persistence.*;
@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Entity
 @Table(name = "app_record_state_history")
-public class AppRecordStateHistory extends BaseAuditEntity {
+public class AppRecordStateHistory extends SoftDeletableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "record_id", nullable = false)
@@ -69,6 +69,17 @@ public class AppRecordStateHistory extends BaseAuditEntity {
         return history;
     }
 
+    public void updateNote(String note) {
+        this.note = note;
+    }
+
+    public void delete(String deletedBy) {
+        if (isDeleted()) {
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "AppRecordStateHistory", getId());
+        }
+        softDelete(deletedBy);
+    }
+
     private void validateTopology() {
         if (record == null || workflow == null || toState == null) {
             throw AppException.of(ErrorCode.BAD_REQUEST, "STATE_HISTORY_INVALID");
@@ -76,15 +87,27 @@ public class AppRecordStateHistory extends BaseAuditEntity {
 
         Long workflowId = workflow.getId();
 
-        if (fromState != null && !workflowId.equals(fromState.getWorkflow().getId())) {
+        if (workflowId == null) {
+            return;
+        }
+
+        if (fromState != null
+                && fromState.getWorkflow() != null
+                && fromState.getWorkflow().getId() != null
+                && !workflowId.equals(fromState.getWorkflow().getId())) {
             throw AppException.of(ErrorCode.BAD_REQUEST, "STATE_HISTORY_FROM_STATE_WORKFLOW_MISMATCH");
         }
 
-        if (!workflowId.equals(toState.getWorkflow().getId())) {
+        if (toState.getWorkflow() != null
+                && toState.getWorkflow().getId() != null
+                && !workflowId.equals(toState.getWorkflow().getId())) {
             throw AppException.of(ErrorCode.BAD_REQUEST, "STATE_HISTORY_TO_STATE_WORKFLOW_MISMATCH");
         }
 
-        if (transition != null && !workflowId.equals(transition.getWorkflow().getId())) {
+        if (transition != null
+                && transition.getWorkflow() != null
+                && transition.getWorkflow().getId() != null
+                && !workflowId.equals(transition.getWorkflow().getId())) {
             throw AppException.of(ErrorCode.BAD_REQUEST, "STATE_HISTORY_TRANSITION_WORKFLOW_MISMATCH");
         }
     }

@@ -47,6 +47,10 @@ public class DpWorkflow extends SoftDeletableEntity {
     @Column(name = "config_json", columnDefinition = "JSON")
     private Map<String, Object> config;
 
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
+
     @OneToMany(mappedBy = "workflow", fetch = FetchType.LAZY)
     private List<DpWorkflowState> states = new ArrayList<>();
 
@@ -69,34 +73,23 @@ public class DpWorkflow extends SoftDeletableEntity {
         return workflow;
     }
 
-    public void updateInfo(String name, String description) {
-        this.workflowName = name;
+    public void applyMetadata(
+            String workflowName,
+            String description,
+            Boolean isDefault,
+            Boolean isActive,
+            Map<String, Object> config
+    ) {
+        this.workflowName = workflowName;
         this.description = description;
-    }
-
-    public void updateConfig(Map<String, Object> config) {
+        this.isDefault = isDefault;
+        this.isActive = isActive;
         this.config = config;
-    }
-
-    public void markDefault() {
-        this.isDefault = true;
-    }
-
-    public void unmarkDefault() {
-        this.isDefault = false;
-    }
-
-    public void activate() {
-        this.isActive = true;
-    }
-
-    public void deactivate() {
-        this.isActive = false;
     }
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "DpWorkflow", getId());
         }
         softDelete(deletedBy);
     }

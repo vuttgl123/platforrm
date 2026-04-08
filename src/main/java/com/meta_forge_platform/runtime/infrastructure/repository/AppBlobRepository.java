@@ -1,6 +1,7 @@
 package com.meta_forge_platform.runtime.infrastructure.repository;
 
 import com.meta_forge_platform.runtime.domain.entity.AppBlob;
+import com.meta_forge_platform.runtime.domain.enumeration.BlobStorageProvider;
 import com.meta_forge_platform.shared.infrastructure.BaseRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,22 +21,36 @@ public interface AppBlobRepository extends BaseRepository<AppBlob, Long> {
 
     Optional<AppBlob> findByChecksumAndIsDeletedFalse(String checksum);
 
-    List<AppBlob> findAllByStorageProviderAndIsDeletedFalse(String storageProvider);
+    List<AppBlob> findAllByStorageProviderAndIsDeletedFalse(BlobStorageProvider storageProvider);
 
     List<AppBlob> findAllByContentTypeAndIsDeletedFalse(String contentType);
 
-    @Query("SELECT b FROM AppBlob b WHERE b.isDeleted = false " +
-            "AND b.contentType LIKE 'image/%'")
+    @Query("""
+        SELECT b
+        FROM AppBlob b
+        WHERE b.isDeleted = false
+          AND b.contentType LIKE 'image/%'
+    """)
     List<AppBlob> findAllImages();
 
-    @Query("SELECT COALESCE(SUM(b.fileSize), 0) FROM AppBlob b " +
-            "WHERE b.storageProvider = :provider AND b.isDeleted = false")
-    Long sumFileSizeByProvider(@Param("provider") String provider);
+    @Query("""
+        SELECT COALESCE(SUM(b.fileSize), 0)
+        FROM AppBlob b
+        WHERE b.storageProvider = :provider
+          AND b.isDeleted = false
+    """)
+    Long sumFileSizeByProvider(@Param("provider") BlobStorageProvider provider);
 
-    @Query("SELECT b FROM AppBlob b WHERE b.isDeleted = false " +
-            "AND NOT EXISTS (" +
-            "  SELECT rb FROM AppRecordBlob rb " +
-            "  WHERE rb.blob.id = b.id AND rb.isDeleted = false" +
-            ")")
+    @Query("""
+        SELECT b
+        FROM AppBlob b
+        WHERE b.isDeleted = false
+          AND NOT EXISTS (
+              SELECT rb
+              FROM AppRecordBlob rb
+              WHERE rb.blob.id = b.id
+                AND rb.isDeleted = false
+          )
+    """)
     List<AppBlob> findOrphanBlobs();
 }

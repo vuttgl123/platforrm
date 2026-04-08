@@ -27,8 +27,9 @@ public class DpScreenField extends SoftDeletableEntity {
     @JoinColumn(name = "screen_id", nullable = false)
     private DpScreen screen;
 
-    @Column(name = "section_id")
-    private Long sectionId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "section_id")
+    private DpScreenSection section;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "field_id", nullable = false)
@@ -60,6 +61,10 @@ public class DpScreenField extends SoftDeletableEntity {
     @Column(name = "config_json", columnDefinition = "JSON")
     private Map<String, Object> config;
 
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
+
     public static DpScreenField create(DpScreen screen, DpField field) {
         DpScreenField screenField = new DpScreenField();
         screenField.screen = screen;
@@ -72,40 +77,31 @@ public class DpScreenField extends SoftDeletableEntity {
         return screenField;
     }
 
-    public void assignSection(Long sectionId) {
-        this.sectionId = sectionId;
-    }
-
-    public void updateDisplay(String displayLabel, ScreenWidgetType widgetType, Integer colSpan) {
+    public void applyMetadata(
+            DpScreenSection section,
+            String displayLabel,
+            ScreenWidgetType widgetType,
+            Integer colSpan,
+            Integer rowNo,
+            Integer sortOrder,
+            Boolean isReadonly,
+            Boolean isHidden,
+            Map<String, Object> config
+    ) {
+        this.section = section;
         this.displayLabel = displayLabel;
         this.widgetType = widgetType;
         this.colSpan = colSpan;
-    }
-
-    public void reorder(Integer rowNo, Integer sortOrder) {
         this.rowNo = rowNo;
         this.sortOrder = sortOrder;
-    }
-
-    public void hide() {
-        this.isHidden = true;
-    }
-
-    public void show() {
-        this.isHidden = false;
-    }
-
-    public void markReadonly() {
-        this.isReadonly = true;
-    }
-
-    public void markEditable() {
-        this.isReadonly = false;
+        this.isReadonly = isReadonly;
+        this.isHidden = isHidden;
+        this.config = config;
     }
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "DpScreenField", getId());
         }
         softDelete(deletedBy);
     }

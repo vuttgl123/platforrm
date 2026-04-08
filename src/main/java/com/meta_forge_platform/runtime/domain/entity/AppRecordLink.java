@@ -45,6 +45,10 @@ public class AppRecordLink extends SoftDeletableEntity {
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder;
 
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
+
     public static AppRecordLink create(
             AppRecord sourceRecord,
             AppRecord targetRecord,
@@ -63,17 +67,22 @@ public class AppRecordLink extends SoftDeletableEntity {
         return link;
     }
 
-    public void reorder(Integer sortOrder) {
-        this.sortOrder = sortOrder;
-    }
-
-    public void changeType(RecordLinkType linkType) {
+    public void applyMetadata(
+            DpEntityRelation relation,
+            DpField field,
+            RecordLinkType linkType,
+            Integer sortOrder
+    ) {
+        this.relation = relation;
+        this.field = field;
         this.linkType = linkType;
+        this.sortOrder = sortOrder;
+        validateTopology();
     }
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "AppRecordLink", getId());
         }
         softDelete(deletedBy);
     }

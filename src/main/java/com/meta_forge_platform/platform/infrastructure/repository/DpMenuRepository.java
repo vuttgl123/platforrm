@@ -1,6 +1,7 @@
 package com.meta_forge_platform.platform.infrastructure.repository;
 
 import com.meta_forge_platform.platform.domain.entity.DpMenu;
+import com.meta_forge_platform.platform.domain.enumeration.MenuType;
 import com.meta_forge_platform.shared.infrastructure.BaseRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,18 +17,25 @@ public interface DpMenuRepository extends BaseRepository<DpMenu, Long> {
 
     boolean existsByModule_IdAndMenuCodeAndIsDeletedFalse(Long moduleId, String menuCode);
 
-    List<DpMenu> findAllByModule_IdAndParentMenuIsNullAndIsActiveTrueAndIsDeletedFalseOrderBySortOrderAsc(Long moduleId);
+    List<DpMenu> findAllByModule_IdAndParentMenuIsNullAndIsDeletedFalseOrderBySortOrderAsc(Long moduleId);
 
-    List<DpMenu> findAllByParentMenu_IdAndIsActiveTrueAndIsDeletedFalseOrderBySortOrderAsc(Long parentMenuId);
+    List<DpMenu> findAllByParentMenu_IdAndIsDeletedFalseOrderBySortOrderAsc(Long parentMenuId);
+
+    List<DpMenu> findAllByModule_IdAndIsActiveTrueAndIsDeletedFalseOrderBySortOrderAsc(Long moduleId);
 
     List<DpMenu> findAllByModule_IdAndIsDeletedFalseOrderBySortOrderAsc(Long moduleId);
 
     List<DpMenu> findAllByScreen_IdAndIsDeletedFalse(Long screenId);
 
-    @Query("SELECT m FROM DpMenu m WHERE m.module.id = :moduleId " +
-            "AND m.isDeleted = false AND m.isActive = true " +
-            "ORDER BY m.sortOrder ASC")
-    List<DpMenu> findMenuTreeByModule(@Param("moduleId") Long moduleId);
+    List<DpMenu> findAllByModule_IdAndMenuTypeAndIsDeletedFalseOrderBySortOrderAsc(Long moduleId, MenuType menuType);
 
-    List<DpMenu> findAllByModule_IdAndMenuTypeAndIsDeletedFalse(Long moduleId, String menuType);
+    @Query("""
+        SELECT m
+        FROM DpMenu m
+        WHERE m.module.id = :moduleId
+          AND m.isDeleted = false
+          AND m.isActive = true
+        ORDER BY m.sortOrder ASC
+    """)
+    List<DpMenu> findMenuTreeByModule(@Param("moduleId") Long moduleId);
 }

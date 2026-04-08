@@ -25,18 +25,26 @@ public interface AppRecordStateHistoryRepository extends BaseRepository<AppRecor
 
     List<AppRecordStateHistory> findAllByRecord_IdAndActionCodeAndIsDeletedFalse(Long recordId, String actionCode);
 
-    @Query("SELECT COUNT(h) FROM AppRecordStateHistory h " +
-            "WHERE h.record.entity.id = :entityId AND h.isDeleted = false " +
-            "AND h.toState.id = :stateId " +
-            "AND h.changedAt BETWEEN :from AND :to")
+    @Query("""
+        SELECT COUNT(h)
+        FROM AppRecordStateHistory h
+        WHERE h.record.entity.id = :entityId
+          AND h.isDeleted = false
+          AND h.toState.id = :stateId
+          AND h.changedAt BETWEEN :from AND :to
+    """)
     long countTransitionsToState(@Param("entityId") Long entityId,
                                  @Param("stateId") Long stateId,
                                  @Param("from") LocalDateTime from,
                                  @Param("to") LocalDateTime to);
 
-    @Query("SELECT COUNT(h) > 0 FROM AppRecordStateHistory h " +
-            "WHERE h.record.id = :recordId AND h.toState.id = :stateId " +
-            "AND h.isDeleted = false")
+    @Query("""
+        SELECT CASE WHEN COUNT(h) > 0 THEN true ELSE false END
+        FROM AppRecordStateHistory h
+        WHERE h.record.id = :recordId
+          AND h.toState.id = :stateId
+          AND h.isDeleted = false
+    """)
     boolean hasRecordBeenInState(@Param("recordId") Long recordId,
                                  @Param("stateId") Long stateId);
 }

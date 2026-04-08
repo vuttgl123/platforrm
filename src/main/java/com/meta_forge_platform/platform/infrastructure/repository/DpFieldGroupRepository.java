@@ -17,16 +17,29 @@ public interface DpFieldGroupRepository extends BaseRepository<DpFieldGroup, Lon
 
     boolean existsByEntity_IdAndGroupCodeAndIsDeletedFalse(Long entityId, String groupCode);
 
-    @Query("SELECT COUNT(g) > 0 FROM DpFieldGroup g WHERE g.entity.id = :entityId " +
-            "AND g.groupCode = :code AND g.id <> :excludeId AND g.isDeleted = false")
+    @Query("""
+        SELECT CASE WHEN COUNT(g) > 0 THEN true ELSE false END
+        FROM DpFieldGroup g
+        WHERE g.entity.id = :entityId
+          AND g.groupCode = :code
+          AND g.id <> :excludeId
+          AND g.isDeleted = false
+    """)
     boolean existsByEntityAndCodeExcludeId(@Param("entityId") Long entityId,
                                            @Param("code") String code,
                                            @Param("excludeId") Long excludeId);
 
     List<DpFieldGroup> findAllByEntity_IdAndIsDeletedFalseOrderBySortOrderAsc(Long entityId);
 
+    List<DpFieldGroup> findAllByEntity_IdAndIsActiveTrueAndIsDeletedFalseOrderBySortOrderAsc(Long entityId);
+
     @Modifying
-    @Query("UPDATE DpFieldGroup g SET g.isDeleted = true WHERE g.entity.id = :entityId")
+    @Query("""
+        UPDATE DpFieldGroup g
+           SET g.isDeleted = true
+         WHERE g.entity.id = :entityId
+           AND g.isDeleted = false
+    """)
     int softDeleteByEntityId(@Param("entityId") Long entityId);
 
     long countByEntity_IdAndIsDeletedFalse(Long entityId);

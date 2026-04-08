@@ -35,7 +35,7 @@ public class DpScreen extends SoftDeletableEntity {
     private String screenName;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "screen_type", nullable = false)
+    @Column(name = "screen_type", nullable = false, length = 50)
     private ScreenType screenType;
 
     @Column(name = "route_path", length = 255)
@@ -55,6 +55,10 @@ public class DpScreen extends SoftDeletableEntity {
     @Column(name = "config_json", columnDefinition = "JSON")
     private Map<String, Object> config;
 
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
+
     public static DpScreen create(
             DpModule module,
             DpEntity entity,
@@ -73,26 +77,29 @@ public class DpScreen extends SoftDeletableEntity {
         return s;
     }
 
-    public void updateBasic(String name, String route) {
-        this.screenName = name;
-        this.routePath = route;
+    public void applyMetadata(
+            String screenName,
+            ScreenType screenType,
+            String routePath,
+            Boolean isActive,
+            Integer sortOrder,
+            Map<String, Object> config
+    ) {
+        this.screenName = screenName;
+        this.screenType = screenType;
+        this.routePath = routePath;
+        this.isActive = isActive;
+        this.sortOrder = sortOrder;
+        this.config = config;
     }
 
     public void updateSchema(Map<String, Object> schema) {
         this.schema = schema;
     }
 
-    public void activate() {
-        this.isActive = true;
-    }
-
-    public void deactivate() {
-        this.isActive = false;
-    }
-
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "DpScreen", getId());
         }
         softDelete(deletedBy);
     }

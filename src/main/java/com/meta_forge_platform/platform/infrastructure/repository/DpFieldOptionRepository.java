@@ -23,9 +23,34 @@ public interface DpFieldOptionRepository extends BaseRepository<DpFieldOption, L
 
     Optional<DpFieldOption> findByField_IdAndIsDefaultTrueAndIsDeletedFalse(Long fieldId);
 
+    Optional<DpFieldOption> findByField_IdAndOptionValueAndIsDeletedFalse(Long fieldId, String optionValue);
+
     @Modifying
-    @Query("UPDATE DpFieldOption o SET o.isDeleted = true WHERE o.field.id = :fieldId")
+    @Query("""
+        UPDATE DpFieldOption o
+           SET o.isDeleted = true
+         WHERE o.field.id = :fieldId
+           AND o.isDeleted = false
+    """)
     int softDeleteByFieldId(@Param("fieldId") Long fieldId);
 
-    Optional<DpFieldOption> findByField_IdAndOptionValueAndIsDeletedFalse(Long fieldId, String optionValue);
+    @Modifying
+    @Query("""
+        UPDATE DpFieldOption o
+           SET o.isDefault = false
+         WHERE o.field.id = :fieldId
+           AND o.id <> :excludeId
+           AND o.isDeleted = false
+    """)
+    int clearDefaultByFieldIdExcept(@Param("fieldId") Long fieldId,
+                                    @Param("excludeId") Long excludeId);
+
+    @Modifying
+    @Query("""
+        UPDATE DpFieldOption o
+           SET o.isDefault = false
+         WHERE o.field.id = :fieldId
+           AND o.isDeleted = false
+    """)
+    int clearAllDefaultByFieldId(@Param("fieldId") Long fieldId);
 }

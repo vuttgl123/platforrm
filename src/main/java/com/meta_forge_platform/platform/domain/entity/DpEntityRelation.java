@@ -53,6 +53,10 @@ public class DpEntityRelation extends SoftDeletableEntity {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
+
     public static DpEntityRelation create(
             DpEntity source,
             DpEntity target,
@@ -60,6 +64,10 @@ public class DpEntityRelation extends SoftDeletableEntity {
             String name,
             RelationType type
     ) {
+        if (source == null || target == null) {
+            throw AppException.of(ErrorCode.FIELD_REQUIRED, "entity");
+        }
+
         DpEntityRelation r = new DpEntityRelation();
         r.sourceEntity = source;
         r.targetEntity = target;
@@ -70,22 +78,25 @@ public class DpEntityRelation extends SoftDeletableEntity {
         return r;
     }
 
-    public void attachFields(DpField owner, DpField inverse) {
-        this.ownerField = owner;
-        this.inverseField = inverse;
-    }
-
-    public void activate() {
-        this.isActive = true;
-    }
-
-    public void deactivate() {
-        this.isActive = false;
+    public void applyMetadata(
+            String relationName,
+            RelationType relationType,
+            DpField ownerField,
+            DpField inverseField,
+            Map<String, Object> config,
+            Boolean isActive
+    ) {
+        this.relationName = relationName;
+        this.relationType = relationType;
+        this.ownerField = ownerField;
+        this.inverseField = inverseField;
+        this.config = config;
+        this.isActive = isActive;
     }
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "DpEntityRelation", getId());
         }
         softDelete(deletedBy);
     }

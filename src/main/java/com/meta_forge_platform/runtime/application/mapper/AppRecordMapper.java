@@ -28,9 +28,9 @@ public interface AppRecordMapper extends BaseMapper<
     @Override
     @Mapping(target = "entity", source = "entity")
     @Mapping(target = "currentState", source = "currentState")
-    @Mapping(target = "parentRecordId", source = "parentRecordId")
-    @Mapping(target = "parentDisplayName", ignore = true)
-    @Mapping(target = "rootRecordId", source = "rootRecordId")
+    @Mapping(target = "parentRecordId", source = "parentRecord.id")
+    @Mapping(target = "parentDisplayName", source = "parentRecord.displayName")
+    @Mapping(target = "rootRecordId", source = "rootRecord.id")
     AppRecordDto toDto(AppRecord entity);
 
     @Override
@@ -45,8 +45,8 @@ public interface AppRecordMapper extends BaseMapper<
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "entity", ignore = true)
     @Mapping(target = "currentState", ignore = true)
-    @Mapping(target = "parentRecordId", ignore = true)
-    @Mapping(target = "rootRecordId", ignore = true)
+    @Mapping(target = "parentRecord", ignore = true)
+    @Mapping(target = "rootRecord", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "versionNo", ignore = true)
@@ -63,8 +63,8 @@ public interface AppRecordMapper extends BaseMapper<
     @Mapping(target = "recordCode", ignore = true)
     @Mapping(target = "entity", ignore = true)
     @Mapping(target = "currentState", ignore = true)
-    @Mapping(target = "parentRecordId", ignore = true)
-    @Mapping(target = "rootRecordId", ignore = true)
+    @Mapping(target = "parentRecord", ignore = true)
+    @Mapping(target = "rootRecord", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "versionNo", ignore = true)

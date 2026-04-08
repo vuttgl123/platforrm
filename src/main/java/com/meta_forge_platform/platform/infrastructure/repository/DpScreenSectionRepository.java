@@ -15,14 +15,20 @@ public interface DpScreenSectionRepository extends BaseRepository<DpScreenSectio
 
     Optional<DpScreenSection> findByScreen_IdAndSectionCodeAndIsDeletedFalse(Long screenId, String sectionCode);
 
+    boolean existsByScreen_IdAndSectionCodeAndIsDeletedFalse(Long screenId, String sectionCode);
+
     List<DpScreenSection> findAllByScreen_IdAndIsDeletedFalseOrderBySortOrderAsc(Long screenId);
 
-    List<DpScreenSection> findAllByScreen_IdAndParentSectionIsNullAndIsDeletedFalse(Long screenId);
+    List<DpScreenSection> findAllByScreen_IdAndParentSectionIsNullAndIsDeletedFalseOrderBySortOrderAsc(Long screenId);
 
     List<DpScreenSection> findAllByParentSection_IdAndIsDeletedFalseOrderBySortOrderAsc(Long parentSectionId);
 
     @Modifying
-    @Query("UPDATE DpScreenSection s SET s.isDeleted = true " +
-            "WHERE s.screen.id = :screenId")
+    @Query("""
+        UPDATE DpScreenSection s
+           SET s.isDeleted = true
+         WHERE s.screen.id = :screenId
+           AND s.isDeleted = false
+    """)
     int softDeleteByScreenId(@Param("screenId") Long screenId);
 }

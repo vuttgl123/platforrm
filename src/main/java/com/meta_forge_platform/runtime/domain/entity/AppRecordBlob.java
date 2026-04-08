@@ -35,6 +35,10 @@ public class AppRecordBlob extends SoftDeletableEntity {
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder;
 
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
+
     public static AppRecordBlob create(AppRecord record, DpField field, AppBlob blob) {
         AppRecordBlob binding = new AppRecordBlob();
         binding.record = record;
@@ -44,13 +48,13 @@ public class AppRecordBlob extends SoftDeletableEntity {
         return binding;
     }
 
-    public void reorder(Integer sortOrder) {
+    public void applyMetadata(Integer sortOrder) {
         this.sortOrder = sortOrder;
     }
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "AppRecordBlob", getId());
         }
         softDelete(deletedBy);
     }

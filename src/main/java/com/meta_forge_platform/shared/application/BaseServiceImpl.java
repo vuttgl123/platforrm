@@ -20,7 +20,7 @@ import java.util.Optional;
 
 @Slf4j
 @Transactional(readOnly = true)
-public abstract class BaseServiceImpl<E extends BaseEntity, T, C, U, ID>
+public abstract class BaseServiceImpl<E extends SoftDeletableEntity, T, C, U, ID>
         implements BaseService<T, C, U, ID>, RestorableService<T, ID> {
 
     protected final BaseRepository<E, ID> repository;

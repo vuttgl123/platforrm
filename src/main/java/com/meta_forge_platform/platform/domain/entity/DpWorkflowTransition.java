@@ -57,6 +57,10 @@ public class DpWorkflowTransition extends SoftDeletableEntity {
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder;
 
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
+
     public static DpWorkflowTransition create(
             DpWorkflow workflow,
             String code,
@@ -76,37 +80,30 @@ public class DpWorkflowTransition extends SoftDeletableEntity {
         return transition;
     }
 
-    public void updateBasic(String name, String actionCode, Integer sortOrder) {
-        this.transitionName = name;
-        this.actionCode = actionCode;
-        this.sortOrder = sortOrder;
-    }
-
-    public void updateCondition(Map<String, Object> condition) {
-        this.condition = condition;
-    }
-
-    public void updateEffect(Map<String, Object> effect) {
-        this.effect = effect;
-    }
-
-    public void activate() {
-        this.isActive = true;
-    }
-
-    public void deactivate() {
-        this.isActive = false;
-    }
-
-    public void changeRoute(DpWorkflowState fromState, DpWorkflowState toState) {
+    public void applyMetadata(
+            String transitionName,
+            DpWorkflowState fromState,
+            DpWorkflowState toState,
+            String actionCode,
+            Map<String, Object> condition,
+            Map<String, Object> effect,
+            Boolean isActive,
+            Integer sortOrder
+    ) {
+        this.transitionName = transitionName;
         this.fromState = fromState;
         this.toState = toState;
+        this.actionCode = actionCode;
+        this.condition = condition;
+        this.effect = effect;
+        this.isActive = isActive;
+        this.sortOrder = sortOrder;
         validateTopology();
     }
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "DpWorkflowTransition", getId());
         }
         softDelete(deletedBy);
     }
@@ -114,6 +111,14 @@ public class DpWorkflowTransition extends SoftDeletableEntity {
     private void validateTopology() {
         if (workflow == null || fromState == null || toState == null) {
             throw AppException.of(ErrorCode.BAD_REQUEST, "WORKFLOW_TRANSITION_INVALID");
+        }
+
+        if (workflow.getId() == null
+                || fromState.getWorkflow() == null
+                || fromState.getWorkflow().getId() == null
+                || toState.getWorkflow() == null
+                || toState.getWorkflow().getId() == null) {
+            return;
         }
 
         if (!workflow.getId().equals(fromState.getWorkflow().getId())

@@ -1,6 +1,5 @@
 package com.meta_forge_platform.platform.domain.entity;
 
-import com.meta_forge_platform.platform.domain.entity.DpEntity;
 import com.meta_forge_platform.platform.domain.enumeration.ViewType;
 import com.meta_forge_platform.platform.domain.enumeration.ViewVisibility;
 import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
@@ -61,6 +60,10 @@ public class DpView extends SoftDeletableEntity {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
+
     public static DpView create(
             DpEntity entity,
             String code,
@@ -83,38 +86,29 @@ public class DpView extends SoftDeletableEntity {
         return view;
     }
 
-    public void updateBasic(String name, ViewType type) {
-        this.viewName = name;
-        this.viewType = type;
-    }
-
-    public void updateQuery(Map<String, Object> query) {
+    public void applyMetadata(
+            String viewName,
+            ViewType viewType,
+            Map<String, Object> query,
+            List<Object> columns,
+            ViewVisibility visibility,
+            Integer sortOrder,
+            Boolean isDefault,
+            Boolean isActive
+    ) {
+        this.viewName = viewName;
+        this.viewType = viewType;
         this.query = query;
-    }
-
-    public void updateColumns(List<Object> columns) {
         this.columns = columns;
-    }
-
-    public void markDefault() {
-        this.isDefault = true;
-    }
-
-    public void unmarkDefault() {
-        this.isDefault = false;
-    }
-
-    public void activate() {
-        this.isActive = true;
-    }
-
-    public void deactivate() {
-        this.isActive = false;
+        this.visibility = visibility;
+        this.sortOrder = sortOrder;
+        this.isDefault = isDefault;
+        this.isActive = isActive;
     }
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "DpView", getId());
         }
         softDelete(deletedBy);
     }

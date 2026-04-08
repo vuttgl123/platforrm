@@ -44,6 +44,10 @@ public class DpFieldGroup extends SoftDeletableEntity {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
+
     public static DpFieldGroup create(DpEntity entity, String code, String name) {
         DpFieldGroup g = new DpFieldGroup();
         g.entity = entity;
@@ -55,23 +59,23 @@ public class DpFieldGroup extends SoftDeletableEntity {
         return g;
     }
 
-    public void update(String name, Integer sortOrder, GroupLayoutType layoutType) {
+    public void applyMetadata(
+            String name,
+            Integer sortOrder,
+            GroupLayoutType layoutType,
+            Map<String, Object> config,
+            Boolean isActive
+    ) {
         this.groupName = name;
         this.sortOrder = sortOrder;
         this.layoutType = layoutType;
-    }
-
-    public void activate() {
-        this.isActive = true;
-    }
-
-    public void deactivate() {
-        this.isActive = false;
+        this.config = config;
+        this.isActive = isActive;
     }
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "DpFieldGroup", getId());
         }
         softDelete(deletedBy);
     }

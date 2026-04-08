@@ -15,26 +15,47 @@ public interface DpWorkflowTransitionRepository extends BaseRepository<DpWorkflo
 
     Optional<DpWorkflowTransition> findByWorkflow_IdAndTransitionCodeAndIsDeletedFalse(Long workflowId, String transitionCode);
 
+    boolean existsByWorkflow_IdAndTransitionCodeAndIsDeletedFalse(Long workflowId, String transitionCode);
+
     List<DpWorkflowTransition> findAllByWorkflow_IdAndIsDeletedFalseOrderBySortOrderAsc(Long workflowId);
 
-    List<DpWorkflowTransition> findAllByWorkflow_IdAndIsActiveTrueAndIsDeletedFalse(Long workflowId);
+    List<DpWorkflowTransition> findAllByWorkflow_IdAndIsActiveTrueAndIsDeletedFalseOrderBySortOrderAsc(Long workflowId);
 
-    List<DpWorkflowTransition> findAllByFromState_IdAndIsActiveTrueAndIsDeletedFalse(Long fromStateId);
+    List<DpWorkflowTransition> findAllByFromState_IdAndIsActiveTrueAndIsDeletedFalseOrderBySortOrderAsc(Long fromStateId);
 
-    List<DpWorkflowTransition> findAllByToState_IdAndIsDeletedFalse(Long toStateId);
+    List<DpWorkflowTransition> findAllByToState_IdAndIsDeletedFalseOrderBySortOrderAsc(Long toStateId);
 
     Optional<DpWorkflowTransition> findByWorkflow_IdAndActionCodeAndIsDeletedFalse(Long workflowId, String actionCode);
 
-    @Query("SELECT COUNT(t) > 0 FROM DpWorkflowTransition t " +
-            "WHERE t.workflow.id = :workflowId AND t.isDeleted = false " +
-            "AND t.isActive = true " +
-            "AND t.fromState.id = :fromStateId AND t.toState.id = :toStateId")
+    @Query("""
+        SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END
+        FROM DpWorkflowTransition t
+        WHERE t.workflow.id = :workflowId
+          AND t.isDeleted = false
+          AND t.isActive = true
+          AND t.fromState.id = :fromStateId
+          AND t.toState.id = :toStateId
+    """)
     boolean isTransitionValid(@Param("workflowId") Long workflowId,
                               @Param("fromStateId") Long fromStateId,
                               @Param("toStateId") Long toStateId);
 
+    @Query("""
+        SELECT t
+        FROM DpWorkflowTransition t
+        WHERE t.fromState.id = :fromStateId
+          AND t.isActive = true
+          AND t.isDeleted = false
+        ORDER BY t.sortOrder ASC
+    """)
+    List<DpWorkflowTransition> findAvailableTransitions(@Param("fromStateId") Long fromStateId);
+
     @Modifying
-    @Query("UPDATE DpWorkflowTransition t SET t.isDeleted = true " +
-            "WHERE t.workflow.id = :workflowId")
+    @Query("""
+        UPDATE DpWorkflowTransition t
+           SET t.isDeleted = true
+         WHERE t.workflow.id = :workflowId
+           AND t.isDeleted = false
+    """)
     int softDeleteByWorkflowId(@Param("workflowId") Long workflowId);
 }

@@ -4,16 +4,23 @@ import com.meta_forge_platform.platform.application.dto.menu.*;
 import com.meta_forge_platform.platform.application.mapper.DpMenuMapper;
 import com.meta_forge_platform.platform.application.service.DpMenuService;
 import com.meta_forge_platform.platform.domain.entity.DpMenu;
+import com.meta_forge_platform.platform.domain.entity.DpModule;
+import com.meta_forge_platform.platform.domain.entity.DpScreen;
+import com.meta_forge_platform.platform.domain.enumeration.MenuType;
 import com.meta_forge_platform.platform.infrastructure.repository.DpMenuRepository;
 import com.meta_forge_platform.platform.infrastructure.repository.DpModuleRepository;
 import com.meta_forge_platform.platform.infrastructure.repository.DpScreenRepository;
 import com.meta_forge_platform.shared.application.BaseServiceImpl;
 import com.meta_forge_platform.shared.domain.exception.AppException;
+import com.meta_forge_platform.shared.domain.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -38,34 +45,123 @@ public class DpMenuServiceImpl
         this.mapper = mapper;
     }
 
-    @Override protected DpMenuDto toDto(DpMenu e) { return mapper.toDto(e); }
-    @Override protected DpMenu toEntity(CreateDpMenuCmd c) { return mapper.toEntity(c); }
-    @Override protected void updateEntity(DpMenu e, UpdateDpMenuCmd c) { mapper.updateEntity(e, c); }
-
     @Override
-    protected void afterToEntity(DpMenu entity, CreateDpMenuCmd cmd) {
-        entity.setModule(moduleRepository.findActiveById(cmd.getModuleId())
-                .orElseThrow(() -> AppException.notFound("Module", cmd.getModuleId())));
-        if (cmd.getParentMenuId() != null) {
-            entity.setParentMenu(menuRepository.findActiveById(cmd.getParentMenuId())
-                    .orElseThrow(() -> AppException.notFound("ParentMenu", cmd.getParentMenuId())));
-        }
-        if (cmd.getScreenId() != null) {
-            entity.setScreen(screenRepository.findActiveById(cmd.getScreenId())
-                    .orElseThrow(() -> AppException.notFound("Screen", cmd.getScreenId())));
-        }
+    protected String getEntityName() {
+        return "DpMenu";
     }
 
     @Override
-    protected void beforeCreate(CreateDpMenuCmd cmd) {
+    protected DpMenuDto toDto(DpMenu entity) {
+        return mapper.toDto(entity);
+    }
+
+    @Override
+    protected DpMenu toEntity(CreateDpMenuCmd command) {
+        DpModule module = moduleRepository.findActiveById(command.getModuleId())
+                .orElseThrow(() -> AppException.of(
+                        ErrorCode.ENTITY_NOT_FOUND,
+                        "DpModule",
+                        command.getModuleId()
+                ));
+
+        DpMenu parentMenu = resolveParentMenu(command.getParentMenuId());
+        DpScreen screen = resolveScreen(command.getScreenId());
+
+        DpMenu menu = DpMenu.create(
+                module,
+                command.getMenuCode(),
+                command.getMenuName(),
+                toMenuType(command.getMenuType())
+        );
+
+        menu.applyMetadata(
+                command.getMenuName(),
+                parentMenu,
+                toMenuType(command.getMenuType()),
+                screen,
+                command.getRoutePath(),
+                command.getIcon(),
+                command.getSortOrder(),
+                command.getIsActive(),
+                command.getConfigJson()
+        );
+
+        menu.applyHierarchy();
+
+        return menu;
+    }
+
+    @Override
+    protected void updateEntity(DpMenu entity, UpdateDpMenuCmd command) {
+        DpMenu parentMenu = resolveParentMenu(command.getParentMenuId());
+        DpScreen screen = resolveScreen(command.getScreenId());
+
+        validateParentNotSelf(entity.getId(), parentMenu);
+
+        entity.applyMetadata(
+                command.getMenuName(),
+                parentMenu,
+                toMenuType(command.getMenuType()),
+                screen,
+                command.getRoutePath(),
+                command.getIcon(),
+                command.getSortOrder(),
+                command.getIsActive(),
+                command.getConfigJson()
+        );
+
+        entity.applyHierarchy();
+    }
+
+    @Override
+    protected void validateCreateCommand(CreateDpMenuCmd command) {
+        super.validateCreateCommand(command);
+        validateNotNull(command.getModuleId(), "moduleId");
+        validateNotNull(command.getMenuCode(), "menuCode");
+        validateNotNull(command.getMenuName(), "menuName");
+        validateNotNull(command.getMenuType(), "menuType");
+        validateNotNull(command.getSortOrder(), "sortOrder");
+        validateNotNull(command.getIsActive(), "isActive");
+    }
+
+    @Override
+    protected void validateUpdateCommand(UpdateDpMenuCmd command) {
+        super.validateUpdateCommand(command);
+        validateNotNull(command.getMenuName(), "menuName");
+        validateNotNull(command.getMenuType(), "menuType");
+        validateNotNull(command.getSortOrder(), "sortOrder");
+        validateNotNull(command.getIsActive(), "isActive");
+        validateNotNull(command.getVersionNo(), "versionNo");
+    }
+
+    @Override
+    protected void beforeCreate(CreateDpMenuCmd command) {
         if (menuRepository.existsByModule_IdAndMenuCodeAndIsDeletedFalse(
-                cmd.getModuleId(), cmd.getMenuCode()))
-            throw AppException.conflict("Menu code đã tồn tại: " + cmd.getMenuCode());
+                command.getModuleId(),
+                command.getMenuCode()
+        )) {
+            throw AppException.of(
+                    ErrorCode.RECORD_DUPLICATE,
+                    "DpMenu",
+                    command.getMenuCode()
+            );
+        }
     }
 
     @Override
-    protected Specification<DpMenu> buildKeywordSpec(String kw) {
-        String p = "%" + kw.toLowerCase() + "%";
+    protected void beforeUpdate(DpMenu entity, UpdateDpMenuCmd command) {
+        if (!Objects.equals(entity.getVersionNo(), command.getVersionNo())) {
+            throw AppException.of(
+                    ErrorCode.OPTIMISTIC_LOCK,
+                    "DpMenu",
+                    entity.getId()
+            );
+        }
+    }
+
+    @Override
+    protected Specification<DpMenu> buildKeywordSpec(String keyword) {
+        String p = "%" + keyword.toLowerCase(Locale.ROOT) + "%";
         return (root, q, cb) -> cb.or(
                 cb.like(cb.lower(root.get("menuCode")), p),
                 cb.like(cb.lower(root.get("menuName")), p)
@@ -75,18 +171,59 @@ public class DpMenuServiceImpl
     @Override
     public List<DpMenuSummaryDto> findRootMenusByModule(Long moduleId) {
         return mapper.toSummaryDtoList(
-                menuRepository.findAllByModule_IdAndParentMenuIsNullAndIsDeletedFalseOrderBySortOrderAsc(moduleId));
+                menuRepository.findAllByModule_IdAndParentMenuIsNullAndIsDeletedFalseOrderBySortOrderAsc(moduleId)
+        );
     }
 
     @Override
     public List<DpMenuSummaryDto> findChildMenus(Long parentMenuId) {
         return mapper.toSummaryDtoList(
-                menuRepository.findAllByParentMenu_IdAndIsDeletedFalseOrderBySortOrderAsc(parentMenuId));
+                menuRepository.findAllByParentMenu_IdAndIsDeletedFalseOrderBySortOrderAsc(parentMenuId)
+        );
     }
 
     @Override
     public List<DpMenuSummaryDto> findActiveMenusByModule(Long moduleId) {
         return mapper.toSummaryDtoList(
-                menuRepository.findAllByModule_IdAndIsActiveTrueAndIsDeletedFalseOrderBySortOrderAsc(moduleId));
+                menuRepository.findAllByModule_IdAndIsActiveTrueAndIsDeletedFalseOrderBySortOrderAsc(moduleId)
+        );
+    }
+
+    private DpMenu resolveParentMenu(Long id) {
+        if (id == null) {
+            return null;
+        }
+        return menuRepository.findActiveById(id)
+                .orElseThrow(() -> AppException.of(
+                        ErrorCode.ENTITY_NOT_FOUND,
+                        "DpMenu",
+                        id
+                ));
+    }
+
+    private DpScreen resolveScreen(Long id) {
+        if (id == null) {
+            return null;
+        }
+        return screenRepository.findActiveById(id)
+                .orElseThrow(() -> AppException.of(
+                        ErrorCode.ENTITY_NOT_FOUND,
+                        "DpScreen",
+                        id
+                ));
+    }
+
+    private void validateParentNotSelf(Long currentId, DpMenu parentMenu) {
+        if (currentId != null && parentMenu != null && Objects.equals(currentId, parentMenu.getId())) {
+            throw AppException.of(ErrorCode.BAD_REQUEST, "parentMenuId", currentId);
+        }
+    }
+
+    private MenuType toMenuType(String raw) {
+        try {
+            return MenuType.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (Exception e) {
+            throw AppException.of(ErrorCode.BAD_REQUEST, "menuType", raw);
+        }
     }
 }

@@ -30,17 +30,18 @@ public class DpMenu extends SoftDeletableEntity {
     @Column(name = "menu_name", nullable = false, length = 255)
     private String menuName;
 
-    @Column(name = "parent_id")
-    private Long parentId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_menu_id")
+    private DpMenu parentMenu;
 
-    @Column(name = "level")
+    @Column(name = "level", nullable = false)
     private Integer level;
 
     @Column(name = "path", length = 500)
     private String path;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "menu_type", nullable = false)
+    @Column(name = "menu_type", nullable = false, length = 30)
     private MenuType menuType;
 
     @Column(name = "route_path", length = 255)
@@ -63,6 +64,10 @@ public class DpMenu extends SoftDeletableEntity {
     @Column(name = "config_json", columnDefinition = "JSON")
     private Map<String, Object> config;
 
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
+
     public static DpMenu create(
             DpModule module,
             String code,
@@ -75,35 +80,55 @@ public class DpMenu extends SoftDeletableEntity {
         m.menuName = name;
         m.menuType = type;
         m.sortOrder = 0;
+        m.level = 0;
+        m.path = "/";
         m.isActive = true;
         return m;
     }
 
-    public void assignParent(Long parentId, String parentPath) {
-        this.parentId = parentId;
-        this.path = parentPath + "/" + getId();
-        this.level = path.split("/").length - 1;
-    }
-
-    public void updateRoute(String routePath) {
-        this.routePath = routePath;
-    }
-
-    public void attachScreen(DpScreen screen) {
+    public void applyMetadata(
+            String menuName,
+            DpMenu parentMenu,
+            MenuType menuType,
+            DpScreen screen,
+            String routePath,
+            String icon,
+            Integer sortOrder,
+            Boolean isActive,
+            Map<String, Object> config
+    ) {
+        this.menuName = menuName;
+        this.parentMenu = parentMenu;
+        this.menuType = menuType;
         this.screen = screen;
+        this.routePath = routePath;
+        this.icon = icon;
+        this.sortOrder = sortOrder;
+        this.isActive = isActive;
+        this.config = config;
     }
 
-    public void activate() {
-        this.isActive = true;
-    }
+    public void applyHierarchy() {
+        if (this.parentMenu == null) {
+            this.level = 0;
+            this.path = "/";
+            return;
+        }
 
-    public void deactivate() {
-        this.isActive = false;
+        Integer parentLevel = this.parentMenu.getLevel() == null ? 0 : this.parentMenu.getLevel();
+        this.level = parentLevel + 1;
+
+        String parentPath = this.parentMenu.getPath();
+        if (parentPath == null || parentPath.isBlank()) {
+            parentPath = "/";
+        }
+
+        this.path = parentPath + this.parentMenu.getId() + "/";
     }
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "DpMenu", getId());
         }
         softDelete(deletedBy);
     }

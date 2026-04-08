@@ -29,7 +29,7 @@ public class AppRecord extends SoftDeletableEntity {
     @JoinColumn(name = "entity_id", nullable = false)
     private DpEntity entity;
 
-    @Column(name = "record_code", length = 100, nullable = false)
+    @Column(name = "record_code", length = 100)
     private String recordCode;
 
     @Column(name = "display_name", length = 500)
@@ -39,15 +39,21 @@ public class AppRecord extends SoftDeletableEntity {
     @JoinColumn(name = "current_state_id")
     private DpWorkflowState currentState;
 
-    @Column(name = "parent_record_id")
-    private Long parentRecordId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_record_id")
+    private AppRecord parentRecord;
 
-    @Column(name = "root_record_id")
-    private Long rootRecordId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "root_record_id")
+    private AppRecord rootRecord;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private RecordStatus status;
+
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
 
     @Convert(converter = JsonConverter.MapConverter.class)
     @Column(name = "data_json", columnDefinition = "JSON")
@@ -66,38 +72,32 @@ public class AppRecord extends SoftDeletableEntity {
         return record;
     }
 
-    public void updateData(Map<String, Object> data) {
-        this.data = data;
-    }
-
-    public void updateDisplayName(String displayName) {
+    public void applyMetadata(
+            String displayName,
+            RecordStatus status,
+            Map<String, Object> data
+    ) {
         this.displayName = displayName;
+        this.status = status;
+        this.data = data;
     }
 
     public void assignWorkflowState(DpWorkflowState state) {
         this.currentState = state;
     }
 
-    public void assignParent(Long parentRecordId, Long rootRecordId) {
-        this.parentRecordId = parentRecordId;
-        this.rootRecordId = rootRecordId;
+    public void assignParent(AppRecord parentRecord, AppRecord rootRecord) {
+        this.parentRecord = parentRecord;
+        this.rootRecord = rootRecord;
     }
 
-    public void activate() {
-        this.status = RecordStatus.ACTIVE;
-    }
-
-    public void archive() {
-        this.status = RecordStatus.ARCHIVED;
-    }
-
-    public void lock() {
-        this.status = RecordStatus.LOCKED;
+    public void transitionTo(DpWorkflowState state) {
+        this.currentState = state;
     }
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "AppRecord", getId());
         }
         softDelete(deletedBy);
     }

@@ -1,6 +1,5 @@
 package com.meta_forge_platform.platform.domain.entity;
 
-import com.meta_forge_platform.platform.domain.entity.DpField;
 import com.meta_forge_platform.shared.domain.base.SoftDeletableEntity;
 import com.meta_forge_platform.shared.domain.exception.AppException;
 import com.meta_forge_platform.shared.domain.exception.ErrorCode;
@@ -49,6 +48,10 @@ public class DpFieldOption extends SoftDeletableEntity {
     @Column(name = "config_json", columnDefinition = "JSON")
     private Map<String, Object> config;
 
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
+
     public static DpFieldOption create(
             DpField field,
             String code,
@@ -66,27 +69,27 @@ public class DpFieldOption extends SoftDeletableEntity {
         return o;
     }
 
-    public void update(String label, String value, String color) {
+    public void applyMetadata(
+            String label,
+            String value,
+            String colorCode,
+            Integer sortOrder,
+            Boolean isDefault,
+            Boolean isActive,
+            Map<String, Object> config
+    ) {
         this.optionLabel = label;
         this.optionValue = value;
-        this.colorCode = color;
-    }
-
-    public void setDefault(boolean isDefault) {
+        this.colorCode = colorCode;
+        this.sortOrder = sortOrder;
         this.isDefault = isDefault;
-    }
-
-    public void activate() {
-        this.isActive = true;
-    }
-
-    public void deactivate() {
-        this.isActive = false;
+        this.isActive = isActive;
+        this.config = config;
     }
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "DpFieldOption", getId());
         }
         softDelete(deletedBy);
     }

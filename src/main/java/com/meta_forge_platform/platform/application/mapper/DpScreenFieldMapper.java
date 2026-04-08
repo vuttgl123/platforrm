@@ -30,7 +30,7 @@ public interface DpScreenFieldMapper extends BaseMapper<
 
     @Override
     @Mapping(target = "screenId", source = "screen.id")
-    @Mapping(target = "sectionId", source = "sectionId")
+    @Mapping(target = "sectionId", source = "section.id")
     @Mapping(target = "fieldId", source = "field.id")
     @Mapping(target = "fieldCode", source = "field.fieldCode")
     @Mapping(target = "fieldName", source = "field.fieldName")
@@ -39,7 +39,7 @@ public interface DpScreenFieldMapper extends BaseMapper<
     @Override
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "screen", ignore = true)
-    @Mapping(target = "sectionId", ignore = true)
+    @Mapping(target = "section", ignore = true)
     @Mapping(target = "field", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -55,7 +55,7 @@ public interface DpScreenFieldMapper extends BaseMapper<
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "screen", ignore = true)
-    @Mapping(target = "sectionId", ignore = true)
+    @Mapping(target = "section", ignore = true)
     @Mapping(target = "field", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

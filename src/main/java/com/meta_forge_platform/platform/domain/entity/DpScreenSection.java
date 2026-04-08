@@ -37,8 +37,9 @@ public class DpScreenSection extends SoftDeletableEntity {
     @Column(name = "section_type", nullable = false, length = 50)
     private ScreenSectionType sectionType;
 
-    @Column(name = "parent_section_id")
-    private Long parentSectionId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_section_id")
+    private DpScreenSection parentSection;
 
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder;
@@ -46,6 +47,10 @@ public class DpScreenSection extends SoftDeletableEntity {
     @Convert(converter = JsonConverter.MapConverter.class)
     @Column(name = "config_json", columnDefinition = "JSON")
     private Map<String, Object> config;
+
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
 
     public static DpScreenSection create(
             DpScreen screen,
@@ -62,19 +67,23 @@ public class DpScreenSection extends SoftDeletableEntity {
         return section;
     }
 
-    public void assignParent(Long parentSectionId) {
-        this.parentSectionId = parentSectionId;
-    }
-
-    public void updateBasic(String name, ScreenSectionType type, Integer sortOrder) {
-        this.sectionName = name;
-        this.sectionType = type;
+    public void applyMetadata(
+            String sectionName,
+            ScreenSectionType sectionType,
+            DpScreenSection parentSection,
+            Integer sortOrder,
+            Map<String, Object> config
+    ) {
+        this.sectionName = sectionName;
+        this.sectionType = sectionType;
+        this.parentSection = parentSection;
         this.sortOrder = sortOrder;
+        this.config = config;
     }
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "DpScreenSection", getId());
         }
         softDelete(deletedBy);
     }

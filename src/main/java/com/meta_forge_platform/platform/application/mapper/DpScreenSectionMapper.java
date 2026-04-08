@@ -25,18 +25,18 @@ public interface DpScreenSectionMapper extends BaseMapper<
 
     @Override
     @Mapping(target = "screen", source = "screen")
-    @Mapping(target = "parentSectionId", source = "parentSectionId")
+    @Mapping(target = "parentSectionId", source = "parentSection.id")
     DpScreenSectionDto toDto(DpScreenSection entity);
 
     @Override
     @Mapping(target = "screenId", source = "screen.id")
-    @Mapping(target = "parentSectionId", source = "parentSectionId")
+    @Mapping(target = "parentSectionId", source = "parentSection.id")
     DpScreenSectionSummaryDto toSummaryDto(DpScreenSection entity);
 
     @Override
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "screen", ignore = true)
-    @Mapping(target = "parentSectionId", ignore = true)
+    @Mapping(target = "parentSection", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "versionNo", ignore = true)
@@ -52,7 +52,7 @@ public interface DpScreenSectionMapper extends BaseMapper<
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "sectionCode", ignore = true)
     @Mapping(target = "screen", ignore = true)
-    @Mapping(target = "parentSectionId", ignore = true)
+    @Mapping(target = "parentSection", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "versionNo", ignore = true)

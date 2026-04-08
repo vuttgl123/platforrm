@@ -23,7 +23,7 @@ import java.util.Map;
 )
 public class AppBlob extends SoftDeletableEntity {
 
-    @Column(name = "blob_code", length = 100, nullable = false)
+    @Column(name = "blob_code", length = 100)
     private String blobCode;
 
     @Column(name = "file_name", nullable = false, length = 500)
@@ -49,6 +49,10 @@ public class AppBlob extends SoftDeletableEntity {
     @Column(name = "metadata_json", columnDefinition = "JSON")
     private Map<String, Object> metadata;
 
+    @Version
+    @Column(name = "version_no", nullable = false)
+    private Long versionNo;
+
     public static AppBlob create(
             String blobCode,
             String fileName,
@@ -71,7 +75,11 @@ public class AppBlob extends SoftDeletableEntity {
         return blob;
     }
 
-    public void updateMetadata(Map<String, Object> metadata) {
+    public void applyMetadata(
+            String fileName,
+            Map<String, Object> metadata
+    ) {
+        this.fileName = fileName;
         this.metadata = metadata;
     }
 
@@ -90,7 +98,7 @@ public class AppBlob extends SoftDeletableEntity {
 
     public void delete(String deletedBy) {
         if (isDeleted()) {
-            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, getId());
+            throw AppException.of(ErrorCode.RECORD_ALREADY_DELETED, "AppBlob", getId());
         }
         softDelete(deletedBy);
     }

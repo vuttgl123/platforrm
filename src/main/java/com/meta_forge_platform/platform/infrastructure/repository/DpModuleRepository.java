@@ -1,6 +1,7 @@
 package com.meta_forge_platform.platform.infrastructure.repository;
 
 import com.meta_forge_platform.platform.domain.entity.DpModule;
+import com.meta_forge_platform.platform.domain.enumeration.ModuleStatus;
 import com.meta_forge_platform.shared.infrastructure.BaseRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,19 +17,40 @@ public interface DpModuleRepository extends BaseRepository<DpModule, Long> {
 
     boolean existsByModuleCodeAndIsDeletedFalse(String moduleCode);
 
-    @Query("SELECT COUNT(m) > 0 FROM DpModule m " +
-            "WHERE m.moduleCode = :code AND m.id <> :excludeId AND m.isDeleted = false")
+    @Query("""
+        SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END
+        FROM DpModule m
+        WHERE m.moduleCode = :code
+          AND m.id <> :excludeId
+          AND m.isDeleted = false
+    """)
     boolean existsByModuleCodeExcludeId(@Param("code") String code,
                                         @Param("excludeId") Long excludeId);
 
-    List<DpModule> findAllByStatusAndIsDeletedFalseOrderBySortOrderAsc(String status);
+    List<DpModule> findAllByStatusAndIsDeletedFalseOrderBySortOrderAsc(ModuleStatus status);
 
     List<DpModule> findAllByIsDeletedFalseOrderBySortOrderAsc();
 
     List<DpModule> findAllByIsSystemTrueAndIsDeletedFalse();
 
-    @Query("SELECT m FROM DpModule m WHERE m.isDeleted = false AND " +
-            "(LOWER(m.moduleCode) LIKE LOWER(CONCAT('%', :kw, '%')) OR " +
-            " LOWER(m.moduleName) LIKE LOWER(CONCAT('%', :kw, '%')))")
+    @Query("""
+        SELECT m
+        FROM DpModule m
+        WHERE m.isDeleted = false
+          AND (
+                LOWER(m.moduleCode) LIKE LOWER(CONCAT('%', :kw, '%'))
+             OR LOWER(m.moduleName) LIKE LOWER(CONCAT('%', :kw, '%'))
+             OR LOWER(COALESCE(m.description, '')) LIKE LOWER(CONCAT('%', :kw, '%'))
+          )
+        ORDER BY m.sortOrder ASC
+    """)
     List<DpModule> searchByKeyword(@Param("kw") String keyword);
+
+    @Query("""
+        SELECT m
+        FROM DpModule m
+        WHERE m.isDeleted = false
+        ORDER BY m.sortOrder ASC
+    """)
+    List<DpModule> findAllActiveSorted();
 }

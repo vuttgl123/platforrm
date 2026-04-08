@@ -1,6 +1,6 @@
 package com.meta_forge_platform.runtime.application.service.impl;
 
-import com.meta_forge_platform.platform.domain.entity.DpWorkflow;
+import com.meta_forge_platform.platform.domain.entity.DpEntity;
 import com.meta_forge_platform.platform.domain.entity.DpWorkflowState;
 import com.meta_forge_platform.platform.domain.entity.DpWorkflowTransition;
 import com.meta_forge_platform.platform.infrastructure.repository.DpEntityRepository;
@@ -12,10 +12,12 @@ import com.meta_forge_platform.runtime.application.mapper.AppRecordMapper;
 import com.meta_forge_platform.runtime.application.service.AppRecordService;
 import com.meta_forge_platform.runtime.domain.entity.AppRecord;
 import com.meta_forge_platform.runtime.domain.entity.AppRecordStateHistory;
+import com.meta_forge_platform.runtime.domain.enumeration.RecordStatus;
 import com.meta_forge_platform.runtime.infrastructure.repository.AppRecordRepository;
 import com.meta_forge_platform.runtime.infrastructure.repository.AppRecordStateHistoryRepository;
 import com.meta_forge_platform.shared.application.BaseServiceImpl;
 import com.meta_forge_platform.shared.domain.exception.AppException;
+import com.meta_forge_platform.shared.domain.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -56,87 +60,154 @@ public class AppRecordServiceImpl
         this.mapper = mapper;
     }
 
-    @Override protected AppRecordDto toDto(AppRecord e) { return mapper.toDto(e); }
-    @Override protected AppRecord toEntity(CreateAppRecordCmd c) { return mapper.toEntity(c); }
-    @Override protected void updateEntity(AppRecord e, UpdateAppRecordCmd c) { mapper.updateEntity(e, c); }
-
     @Override
-    protected void afterToEntity(AppRecord entity, CreateAppRecordCmd cmd) {
-        // Set entity
-        var dpEntity = entityRepository.findActiveById(cmd.getEntityId())
-                .orElseThrow(() -> AppException.notFound("Entity", cmd.getEntityId()));
-        entity.setEntity(dpEntity);
-
-        // Set parent/root record
-        if (cmd.getParentRecordId() != null) {
-            entity.setParentRecord(recordRepository.findActiveById(cmd.getParentRecordId())
-                    .orElseThrow(() -> AppException.notFound("ParentRecord", cmd.getParentRecordId())));
-        }
-        if (cmd.getRootRecordId() != null) {
-            entity.setRootRecord(recordRepository.findActiveById(cmd.getRootRecordId())
-                    .orElseThrow(() -> AppException.notFound("RootRecord", cmd.getRootRecordId())));
-        }
-
-        // Set initial workflow state tự động
-        workflowRepository.findByEntity_IdAndIsDefaultTrueAndIsDeletedFalse(cmd.getEntityId())
-                .flatMap(wf -> stateRepository.findByWorkflow_IdAndIsInitialTrueAndIsDeletedFalse(wf.getId()))
-                .ifPresent(entity::setCurrentState);
+    protected String getEntityName() {
+        return "AppRecord";
     }
 
     @Override
-    protected void afterCreate(AppRecord entity, CreateAppRecordCmd cmd) {
-        // Ghi lịch sử state ban đầu nếu có workflow
+    protected AppRecordDto toDto(AppRecord entity) {
+        return mapper.toDto(entity);
+    }
+
+    @Override
+    protected AppRecord toEntity(CreateAppRecordCmd command) {
+        DpEntity entity = entityRepository.findActiveById(command.getEntityId())
+                .orElseThrow(() -> AppException.of(
+                        ErrorCode.ENTITY_NOT_FOUND,
+                        "DpEntity",
+                        command.getEntityId()
+                ));
+
+        AppRecord record = AppRecord.create(
+                entity,
+                command.getRecordCode(),
+                command.getDataJson()
+        );
+
+        record.applyMetadata(
+                command.getDisplayName(),
+                toStatus(command.getStatus()),
+                command.getDataJson()
+        );
+
+        AppRecord parent = resolveRecord(command.getParentRecordId(), "ParentRecord");
+        AppRecord root = resolveRecord(command.getRootRecordId(), "RootRecord");
+        record.assignParent(parent, root);
+
+        workflowRepository.findByEntity_IdAndIsDefaultTrueAndIsDeletedFalse(command.getEntityId())
+                .flatMap(wf -> stateRepository.findByWorkflow_IdAndIsInitialTrueAndIsDeletedFalse(wf.getId()))
+                .ifPresent(record::assignWorkflowState);
+
+        return record;
+    }
+
+    @Override
+    protected void updateEntity(AppRecord entity, UpdateAppRecordCmd command) {
+        entity.applyMetadata(
+                command.getDisplayName(),
+                toStatus(command.getStatus()),
+                command.getDataJson()
+        );
+    }
+
+    @Override
+    protected void validateCreateCommand(CreateAppRecordCmd command) {
+        super.validateCreateCommand(command);
+        validateNotNull(command.getEntityId(), "entityId");
+        validateNotNull(command.getStatus(), "status");
+    }
+
+    @Override
+    protected void validateUpdateCommand(UpdateAppRecordCmd command) {
+        super.validateUpdateCommand(command);
+        validateNotNull(command.getStatus(), "status");
+        validateNotNull(command.getVersionNo(), "versionNo");
+    }
+
+    @Override
+    protected void beforeCreate(CreateAppRecordCmd command) {
+        if (command.getRecordCode() != null
+                && !command.getRecordCode().isBlank()
+                && recordRepository.existsByEntity_IdAndRecordCodeAndIsDeletedFalse(
+                command.getEntityId(),
+                command.getRecordCode()
+        )) {
+            throw AppException.of(
+                    ErrorCode.RECORD_DUPLICATE,
+                    "AppRecord",
+                    command.getRecordCode()
+            );
+        }
+    }
+
+    @Override
+    protected void beforeUpdate(AppRecord entity, UpdateAppRecordCmd command) {
+        if (!Objects.equals(entity.getVersionNo(), command.getVersionNo())) {
+            throw AppException.of(
+                    ErrorCode.OPTIMISTIC_LOCK,
+                    "AppRecord",
+                    entity.getId()
+            );
+        }
+    }
+
+    @Override
+    protected void afterCreate(AppRecord entity, CreateAppRecordCmd command) {
         if (entity.getCurrentState() != null) {
             saveStateHistory(entity, null, entity.getCurrentState(), null, "CREATE", null);
         }
     }
 
     @Override
-    protected Specification<AppRecord> buildKeywordSpec(String kw) {
-        String p = "%" + kw.toLowerCase() + "%";
+    protected Specification<AppRecord> buildKeywordSpec(String keyword) {
+        String p = "%" + keyword.toLowerCase(Locale.ROOT) + "%";
         return (root, q, cb) -> cb.or(
-                cb.like(cb.lower(root.get("recordCode")), p),
-                cb.like(cb.lower(root.get("displayName")), p)
+                cb.like(cb.lower(cb.coalesce(root.get("recordCode"), "")), p),
+                cb.like(cb.lower(cb.coalesce(root.get("displayName"), "")), p)
         );
     }
 
-    // ── Workflow transition ───────────────────────────────────────────────────
-
     @Override
     @Transactional
-    public AppRecordDto transition(Long recordId, TransitionAppRecordCmd cmd) {
+    public AppRecordDto transition(Long recordId, TransitionAppRecordCmd command) {
         AppRecord record = recordRepository.findActiveById(recordId)
-                .orElseThrow(() -> AppException.notFound("Record", recordId));
+                .orElseThrow(() -> AppException.of(
+                        ErrorCode.ENTITY_NOT_FOUND,
+                        "AppRecord",
+                        recordId
+                ));
 
-        // Kiểm tra optimistic lock
-        if (!record.getVersionNo().equals(cmd.getVersionNo()))
-            throw AppException.optimisticLock();
-
-        DpWorkflowState fromState = record.getCurrentState();
-        DpWorkflowState toState = stateRepository.findActiveById(cmd.getToStateId())
-                .orElseThrow(() -> AppException.notFound("ToState", cmd.getToStateId()));
-
-        // Kiểm tra transition hợp lệ
-        DpWorkflowTransition transition = null;
-        if (fromState != null) {
-            transition = transitionRepository
-                    .findTransition(fromState.getId(), toState.getId())
-                    .orElseThrow(() -> AppException.badRequest(
-                            String.format("Không thể chuyển từ '%s' sang '%s'",
-                                    fromState.getStateName(), toState.getStateName())));
-            if (!Boolean.TRUE.equals(transition.getIsActive()))
-                throw AppException.badRequest("Transition này hiện không khả dụng");
+        if (!Objects.equals(record.getVersionNo(), command.getVersionNo())) {
+            throw AppException.of(ErrorCode.OPTIMISTIC_LOCK, "AppRecord", recordId);
         }
 
-        // Thực hiện chuyển state
-        record.setCurrentState(toState);
+        DpWorkflowState fromState = record.getCurrentState();
+
+        DpWorkflowState toState = stateRepository.findActiveById(command.getToStateId())
+                .orElseThrow(() -> AppException.of(
+                        ErrorCode.ENTITY_NOT_FOUND,
+                        "DpWorkflowState",
+                        command.getToStateId()
+                ));
+
+        DpWorkflowTransition transition = null;
+        if (fromState != null) {
+            transition = transitionRepository.findAvailableTransitions(fromState.getId())
+                    .stream()
+                    .filter(t -> Objects.equals(t.getToState().getId(), toState.getId()))
+                    .findFirst()
+                    .orElseThrow(() -> AppException.of(
+                            ErrorCode.BAD_REQUEST,
+                            "transition",
+                            fromState.getId() + "->" + toState.getId()
+                    ));
+        }
+
+        record.transitionTo(toState);
         AppRecord saved = recordRepository.save(record);
 
-        // Lưu lịch sử
-        saveStateHistory(saved, fromState, toState, transition, cmd.getActionCode(), cmd.getNote());
-
-        log.info("Record [{}] transitioned: {} → {}", recordId,
-                fromState != null ? fromState.getStateCode() : "null", toState.getStateCode());
+        saveStateHistory(saved, fromState, toState, transition, command.getActionCode(), command.getNote());
 
         return mapper.toDto(saved);
     }
@@ -144,12 +215,17 @@ public class AppRecordServiceImpl
     @Override
     public List<AvailableTransitionDto> getAvailableTransitions(Long recordId) {
         AppRecord record = recordRepository.findActiveById(recordId)
-                .orElseThrow(() -> AppException.notFound("Record", recordId));
+                .orElseThrow(() -> AppException.of(
+                        ErrorCode.ENTITY_NOT_FOUND,
+                        "AppRecord",
+                        recordId
+                ));
 
-        if (record.getCurrentState() == null) return List.of();
+        if (record.getCurrentState() == null) {
+            return List.of();
+        }
 
-        return transitionRepository
-                .findAvailableTransitions(record.getCurrentState().getId())
+        return transitionRepository.findAvailableTransitions(record.getCurrentState().getId())
                 .stream()
                 .map(t -> AvailableTransitionDto.builder()
                         .transitionId(t.getId())
@@ -166,16 +242,36 @@ public class AppRecordServiceImpl
     @Override
     public List<AppRecordSummaryDto> findChildren(Long parentRecordId) {
         return mapper.toSummaryDtoList(
-                recordRepository.findAllByParentRecord_IdAndIsDeletedFalse(parentRecordId));
+                recordRepository.findAllByParentRecord_IdAndIsDeletedFalse(parentRecordId)
+        );
     }
 
     @Override
     public List<AppRecordSummaryDto> findByRootRecord(Long rootRecordId) {
         return mapper.toSummaryDtoList(
-                recordRepository.findAllByRootRecord_IdAndIsDeletedFalse(rootRecordId));
+                recordRepository.findAllByRootRecord_IdAndIsDeletedFalse(rootRecordId)
+        );
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+    private AppRecord resolveRecord(Long id, String label) {
+        if (id == null) {
+            return null;
+        }
+        return recordRepository.findActiveById(id)
+                .orElseThrow(() -> AppException.of(
+                        ErrorCode.ENTITY_NOT_FOUND,
+                        label,
+                        id
+                ));
+    }
+
+    private RecordStatus toStatus(String raw) {
+        try {
+            return RecordStatus.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (Exception e) {
+            throw AppException.of(ErrorCode.BAD_REQUEST, "status", raw);
+        }
+    }
 
     private void saveStateHistory(AppRecord record,
                                   DpWorkflowState fromState,
@@ -183,17 +279,15 @@ public class AppRecordServiceImpl
                                   DpWorkflowTransition transition,
                                   String actionCode,
                                   String note) {
-        DpWorkflow workflow = toState.getWorkflow();
-        AppRecordStateHistory history = AppRecordStateHistory.builder()
-                .record(record)
-                .workflow(workflow)
-                .fromState(fromState)
-                .toState(toState)
-                .transition(transition)
-                .actionCode(actionCode)
-                .note(note)
-                .changedAt(LocalDateTime.now())
-                .build();
+        AppRecordStateHistory history = AppRecordStateHistory.create(
+                record,
+                toState.getWorkflow(),
+                fromState,
+                toState,
+                transition,
+                actionCode,
+                note
+        );
         historyRepository.save(history);
     }
 }
